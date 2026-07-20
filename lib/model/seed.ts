@@ -26,9 +26,17 @@ export function seedDeck(): Deck {
     meta: { title: "AI-Native Teams (starter)", createdAt: now, updatedAt: now },
     slides: [
       slideFrom("title-hero"),
+      slideFrom("agenda-2x2"),
       slideFrom("pull-quote"),
       slideFrom("big-stats"),
       slideFrom("content-list-figures"),
+      slideFrom("logo-stack-grid"),
+      slideFrom("statement"),
+      slideFrom("matrix-2x2"),
+      slideFrom("quadrant-highlight"),
+      slideFrom("two-column-compare"),
+      slideFrom("results-numbers"),
+      slideFrom("operating-principle"),
       slideFrom("contact-cta"),
     ],
   };
