@@ -231,3 +231,34 @@ body {
   height: 100%;
   object-fit: cover;
 }
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  width: 560px;
+  max-width: calc(100vw - 40px);
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 14px;
+  padding: 26px 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.modal-title {
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: -0.3px;
+}
+.modal-sub {
+  font: 400 13px/1.5 var(--font-body);
+  color: #9a9a9a;
+  margin: 8px 0 18px;
+}

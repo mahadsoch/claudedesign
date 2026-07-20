@@ -1,5 +1,6 @@
 import type { Deck } from "@/lib/model/deck";
 import { inlineImage } from "./imageStore";
+import { validateDeck } from "@/lib/ai/validateDeck";
 
 /** Deep-inline every image field ref to a data URL so the deck is portable. */
 export async function inlineDeckImages(deck: Deck): Promise<Deck> {
@@ -29,9 +30,10 @@ export function importDeckJson(file: File): Promise<Deck> {
     const r = new FileReader();
     r.onload = () => {
       try {
-        const deck = JSON.parse(r.result as string) as Deck;
-        if (!deck.slides || !Array.isArray(deck.slides)) throw new Error("Not a deck file");
-        res(deck);
+        const parsed = JSON.parse(r.result as string);
+        if (!parsed.slides || !Array.isArray(parsed.slides)) throw new Error("Not a deck file");
+        // Coerce/harden against the current template schemas (keeps images + ids).
+        res(validateDeck(parsed, parsed?.meta?.title || "Imported deck"));
       } catch (e) {
         rej(e);
       }

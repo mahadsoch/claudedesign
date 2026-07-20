@@ -9,6 +9,7 @@ import { exportDeckPdf } from "@/lib/pdf/exportPdf";
 import { SlidePalette } from "./SlidePalette";
 import { PreviewStage } from "./PreviewStage";
 import { Inspector } from "./Inspector";
+import { GenerateModal } from "./GenerateModal";
 
 export function EditorLayout() {
   const deck = useDeck((s) => s.deck);
@@ -21,6 +22,7 @@ export function EditorLayout() {
   const replaceDeck = useDeck((s) => s.replaceDeck);
 
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [showGenerate, setShowGenerate] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -94,6 +96,9 @@ export function EditorLayout() {
           }}
         />
         <div className="spacer" />
+        <button className="btn primary" onClick={() => setShowGenerate(true)}>
+          ✦ Generate with AI
+        </button>
         <button className="btn" onClick={() => importRef.current?.click()}>
           Import JSON
         </button>
@@ -123,6 +128,10 @@ export function EditorLayout() {
       <SlidePalette ctx={ctx} />
       {current ? <PreviewStage slide={current} ctx={ctx} /> : <div className="stage-wrap" />}
       <Inspector />
+
+      {showGenerate && (
+        <GenerateModal onClose={() => setShowGenerate(false)} onGenerated={(d) => replaceDeck(d)} />
+      )}
     </div>
   );
 }
