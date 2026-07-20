@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Background, FieldValue } from "@/lib/model/deck";
+import type { Background, FieldValue, SlideElement } from "@/lib/model/deck";
 
 // ── Field schema ────────────────────────────────────────────────────────────
 // A template describes its editable content as a list of FieldDefs. The generic
@@ -47,6 +47,12 @@ export interface TemplateDef {
    * the correct background, so `render` only lays out content.
    */
   render: (fields: Record<string, FieldValue>, ctx: RenderCtx) => ReactNode;
+  /**
+   * Optional: expand the template into absolutely-positioned elements for the
+   * freeform canvas ("Detach to canvas"). Present only on templates that
+   * support freeform editing; the Inspector gates the Detach button on it.
+   */
+  expand?: (fields: Record<string, FieldValue>, ctx: RenderCtx) => SlideElement[];
 }
 
 // Convenience accessors with sensible fallbacks.

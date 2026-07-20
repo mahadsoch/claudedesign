@@ -13,10 +13,12 @@ export function Inspector() {
   const del = useDeck((s) => s.deleteSlide);
   const dup = useDeck((s) => s.duplicateSlide);
   const move = useDeck((s) => s.moveSlide);
+  const detach = useDeck((s) => s.detachSlide);
 
   if (!slide) return <div className="inspector" />;
   const tpl = getTemplate(slide.template);
   const idx = deck.slides.findIndex((s) => s.id === slide.id);
+  const detached = !!(slide.elements && slide.elements.length > 0);
 
   return (
     <div className="inspector">
@@ -37,9 +39,31 @@ export function Inspector() {
         </button>
       </div>
 
-      {tpl?.fields.map((f) => (
-        <Field key={f.key} slideId={slide.id} def={f} />
-      ))}
+      {detached ? (
+        <div style={{ font: "400 13px/1.6 var(--font-body)", color: "#9a9a9a" }}>
+          This slide is on the <b style={{ color: "#ddd" }}>freeform canvas</b>. Edit elements
+          directly on the stage — move, resize, restyle, add text/shapes/images. Use the toolbar
+          above the canvas. <br />
+          <br />
+          &ldquo;Reset to template&rdquo; (in the canvas toolbar) discards freeform edits and
+          restores the structured fields.
+        </div>
+      ) : (
+        <>
+          {tpl?.expand && (
+            <button
+              className="btn"
+              style={{ width: "100%", marginBottom: 16 }}
+              onClick={() => detach(slide.id)}
+            >
+              ✎ Detach to canvas (freeform)
+            </button>
+          )}
+          {tpl?.fields.map((f) => (
+            <Field key={f.key} slideId={slide.id} def={f} />
+          ))}
+        </>
+      )}
     </div>
   );
 }

@@ -53,11 +53,16 @@ export function EditorLayout() {
   useEffect(() => {
     let cancelled = false;
     const refs = new Set<string>();
-    deck.slides.forEach((sl) =>
+    deck.slides.forEach((sl) => {
       Object.values(sl.fields).forEach((v) => {
         if (typeof v === "string" && v.startsWith("blob:")) refs.add(v);
-      })
-    );
+      });
+      sl.elements?.forEach((el) => {
+        if (el.type === "image" && typeof el.content === "string" && el.content.startsWith("blob:")) {
+          refs.add(el.content);
+        }
+      });
+    });
     const missing = [...refs].filter((r) => !resolveImageSync(r));
     if (missing.length === 0) return;
     Promise.all(missing.map((r) => resolveImageAsync(r))).then(() => {

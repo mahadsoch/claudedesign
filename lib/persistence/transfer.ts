@@ -12,7 +12,18 @@ export async function inlineDeckImages(deck: Deck): Promise<Deck> {
           fields[k] = (await inlineImage(v)) ?? "";
         }
       }
-      return { ...sl, fields };
+      // Detached (freeform) slides carry image refs in elements[].content too.
+      let elements = sl.elements;
+      if (elements) {
+        elements = await Promise.all(
+          elements.map(async (el) =>
+            el.type === "image" && typeof el.content === "string" && el.content.startsWith("blob:")
+              ? { ...el, content: (await inlineImage(el.content)) ?? "" }
+              : el
+          )
+        );
+      }
+      return { ...sl, fields, ...(elements ? { elements } : {}) };
     })
   );
   return { ...deck, slides };

@@ -1,5 +1,7 @@
 import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
+import { uid } from "@/lib/model/deck";
+import type { SlideElement } from "@/lib/model/deck";
 import { Stage, AccentTitle, parseAccents } from "./_shared/primitives";
 
 export const contentListFigures: TemplateDef = {
@@ -85,4 +87,28 @@ export const contentListFigures: TemplateDef = {
       )}
     </Stage>
   ),
+  expand: (f) => {
+    const items = rows(f.items);
+    const els: SlideElement[] = [
+      { id: uid("el"), type: "text", x: 120, y: 90, w: 1500, h: 90, rotation: 0, fieldKey: "title",
+        style: { fontFamily: "var(--font-title)", fontSize: 64, fontWeight: 600, letterSpacing: -2, lineHeight: 1.08, color: "var(--ink)" }, content: str(f.title) },
+    ];
+    items.forEach((it, i) => {
+      const y = 250 + i * 160;
+      els.push(
+        { id: uid("el"), type: "shape", x: 120, y: y - 20, w: 1680, h: 2, rotation: 0, style: { background: "var(--ink)" } },
+        { id: uid("el"), type: "text", x: 120, y, w: 220, h: 70, rotation: 0,
+          style: { fontFamily: "var(--font-title)", fontSize: 62, fontWeight: 600, letterSpacing: -2, lineHeight: 1, color: "var(--coral)" }, content: it.figure ?? "" },
+        { id: uid("el"), type: "text", x: 360, y, w: 1400, h: 44, rotation: 0,
+          style: { fontFamily: "var(--font-title)", fontSize: 34, fontWeight: 600, letterSpacing: -0.5, color: "var(--ink)" }, content: it.head ?? "" },
+        { id: uid("el"), type: "text", x: 360, y: y + 52, w: 1400, h: 44, rotation: 0,
+          style: { fontFamily: "var(--font-body)", fontSize: 26, lineHeight: 1.45, color: "var(--body-light)" }, content: it.desc ?? "" }
+      );
+    });
+    if (str(f.takeaway)) {
+      els.push({ id: uid("el"), type: "text", x: 120, y: 940, w: 1600, h: 60, rotation: 0, fieldKey: "takeaway",
+        style: { fontFamily: "var(--font-title)", fontSize: 36, fontWeight: 500, lineHeight: 1.4, color: "var(--ink)" }, content: str(f.takeaway) });
+    }
+    return els;
+  },
 };

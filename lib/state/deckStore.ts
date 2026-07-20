@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { Deck, Slide, FieldValue } from "@/lib/model/deck";
+import type { Deck, Slide, FieldValue, SlideElement } from "@/lib/model/deck";
 import { uid } from "@/lib/model/deck";
 import { getTemplate } from "@/components/templates/registry";
 import { seedDeck } from "@/lib/model/seed";
@@ -47,6 +47,22 @@ interface DeckState {
 
   bumpImages: () => void;
   replaceDeck: (deck: Deck) => void;
+
+  // ── Freeform canvas (Phase 3) ──────────────────────────────────────────
+  selectedElementIds: string[];
+  editingElementId: string | null;
+  selectElements: (ids: string[]) => void;
+  setEditingElement: (id: string | null) => void;
+
+  detachSlide: (slideId: string) => void;
+  reattachSlide: (slideId: string) => void;
+  addElement: (slideId: string, el: Omit<SlideElement, "id">) => string;
+  updateElement: (slideId: string, id: string, patch: Partial<SlideElement>) => void;
+  updateElementStyle: (slideId: string, id: string, style: Record<string, string | number>) => void;
+  commitGeometry: (slideId: string, geo: Record<string, Partial<SlideElement>>) => void;
+  removeElements: (slideId: string, ids: string[]) => void;
+  duplicateElement: (slideId: string, id: string) => void;
+  reorderElement: (slideId: string, id: string, op: "front" | "back" | "forward" | "backward") => void;
 }
 
 const HISTORY_CAP = 50;
@@ -219,6 +235,104 @@ export const useDeck = create<DeckState>((set, get) => {
           const list = [...((sl.fields[key] as Record<string, string>[]) ?? [])];
           list.splice(index, 1);
           return { ...sl, fields: { ...sl.fields, [key]: list } };
+        })
+      ),
+
+    selectedElementIds: [],
+    editingElementId: null,
+    selectElements: (ids) => set({ selectedElementIds: ids }),
+    setEditingElement: (id) => set({ editingElementId: id }),
+
+    detachSlide: (slideId) => {
+      const { deck } = get();
+      const slide = deck.slides.find((s) => s.id === slideId);
+      if (!slide || slide.elements?.length) return;
+      const tpl = getTemplate(slide.template);
+      if (!tpl?.expand) return;
+      const elements = tpl.expand(slide.fields, { resolveImage: (r) => r });
+      withDeck((d) => mapSlides(d, slideId, (sl) => ({ ...sl, elements })));
+      set({ selectedElementIds: [] });
+    },
+
+    reattachSlide: (slideId) => {
+      withDeck((d) =>
+        mapSlides(d, slideId, (sl) => {
+          const copy = { ...sl };
+          delete copy.elements;
+          return copy;
+        })
+      );
+      set({ selectedElementIds: [], editingElementId: null });
+    },
+
+    addElement: (slideId, el) => {
+      const id = uid("el");
+      withDeck((d) =>
+        mapSlides(d, slideId, (sl) => ({ ...sl, elements: [...(sl.elements ?? []), { ...el, id }] }))
+      );
+      set({ selectedElementIds: [id] });
+      return id;
+    },
+
+    updateElement: (slideId, id, patch) =>
+      withDeck((d) =>
+        mapSlides(d, slideId, (sl) => ({
+          ...sl,
+          elements: (sl.elements ?? []).map((e) =>
+            e.id === id ? { ...e, ...patch, style: { ...e.style, ...(patch.style ?? {}) } } : e
+          ),
+        }))
+      ),
+
+    updateElementStyle: (slideId, id, style) =>
+      withDeck((d) =>
+        mapSlides(d, slideId, (sl) => ({
+          ...sl,
+          elements: (sl.elements ?? []).map((e) => (e.id === id ? { ...e, style: { ...e.style, ...style } } : e)),
+        }))
+      ),
+
+    commitGeometry: (slideId, geo) =>
+      withDeck((d) =>
+        mapSlides(d, slideId, (sl) => ({
+          ...sl,
+          elements: (sl.elements ?? []).map((e) => (geo[e.id] ? { ...e, ...geo[e.id] } : e)),
+        }))
+      ),
+
+    removeElements: (slideId, ids) => {
+      const set$ = new Set(ids);
+      withDeck((d) =>
+        mapSlides(d, slideId, (sl) => ({ ...sl, elements: (sl.elements ?? []).filter((e) => !set$.has(e.id)) }))
+      );
+      set((s) => ({ selectedElementIds: s.selectedElementIds.filter((i) => !set$.has(i)) }));
+    },
+
+    duplicateElement: (slideId, id) => {
+      const newId = uid("el");
+      withDeck((d) =>
+        mapSlides(d, slideId, (sl) => {
+          const src = (sl.elements ?? []).find((e) => e.id === id);
+          if (!src) return sl;
+          const copy: SlideElement = { ...structuredClone(src), id: newId, x: src.x + 24, y: src.y + 24 };
+          return { ...sl, elements: [...(sl.elements ?? []), copy] };
+        })
+      );
+      set({ selectedElementIds: [newId] });
+    },
+
+    reorderElement: (slideId, id, op) =>
+      withDeck((d) =>
+        mapSlides(d, slideId, (sl) => {
+          const els = [...(sl.elements ?? [])];
+          const i = els.findIndex((e) => e.id === id);
+          if (i < 0) return sl;
+          const [el] = els.splice(i, 1);
+          if (op === "front") els.push(el);
+          else if (op === "back") els.unshift(el);
+          else if (op === "forward") els.splice(Math.min(i + 1, els.length), 0, el);
+          else els.splice(Math.max(i - 1, 0), 0, el);
+          return { ...sl, elements: els };
         })
       ),
 

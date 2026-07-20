@@ -1,5 +1,7 @@
 import type { TemplateDef } from "./types";
 import { str } from "./types";
+import { uid } from "@/lib/model/deck";
+import type { SlideElement } from "@/lib/model/deck";
 import { Stage, Kicker, AccentTitle, ImageBox, Logo } from "./_shared/primitives";
 
 export const titleHero: TemplateDef = {
@@ -38,4 +40,15 @@ export const titleHero: TemplateDef = {
       </div>
     </Stage>
   ),
+  expand: (f): SlideElement[] => [
+    { id: uid("el"), type: "image", x: 120, y: 90, w: 180, h: 52, rotation: 0, style: { objectFit: "contain" }, content: "/assets/soch-logo.png" },
+    { id: uid("el"), type: "text", x: 120, y: 542, w: 960, h: 34, rotation: 0, fieldKey: "kicker",
+      style: { fontFamily: "var(--font-mono)", fontSize: 24, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: "var(--coral)" }, content: str(f.kicker) },
+    { id: uid("el"), type: "text", x: 120, y: 600, w: 980, h: 240, rotation: 0, fieldKey: "title",
+      style: { fontFamily: "var(--font-title)", fontSize: 104, fontWeight: 600, letterSpacing: -4, lineHeight: 1.05, color: "var(--cream)" }, content: str(f.title) },
+    { id: uid("el"), type: "text", x: 120, y: 870, w: 720, h: 100, rotation: 0, fieldKey: "subtitle",
+      style: { fontFamily: "var(--font-body)", fontSize: 32, lineHeight: 1.5, color: "var(--body-dark)" }, content: str(f.subtitle) },
+    { id: uid("el"), type: "image", x: 1180, y: 150, w: 620, h: 780, rotation: 0, style: { borderRadius: 24, objectFit: "cover" }, content: str(f.image) },
+    { id: uid("el"), type: "shape", x: 1158, y: 822, w: 44, h: 44, rotation: 0, style: { background: "var(--coral)", borderRadius: 9999 } },
+  ],
 };

@@ -1,5 +1,7 @@
 import type { TemplateDef } from "./types";
 import { str } from "./types";
+import { uid } from "@/lib/model/deck";
+import type { SlideElement } from "@/lib/model/deck";
 import { Stage } from "./_shared/primitives";
 
 export const pullQuote: TemplateDef = {
@@ -33,4 +35,13 @@ export const pullQuote: TemplateDef = {
       )}
     </Stage>
   ),
+  expand: (f): SlideElement[] => [
+    { id: uid("el"), type: "text", x: 120, y: 210, w: 400, h: 200, rotation: 0,
+      style: { fontFamily: "var(--font-title)", fontSize: 300, fontWeight: 700, lineHeight: 0.6, color: "var(--cream)", opacity: 0.35 }, content: "“" },
+    { id: uid("el"), type: "text", x: 120, y: 360, w: 1400, h: 300, rotation: 0, fieldKey: "quote",
+      style: { fontFamily: "var(--font-title)", fontSize: 130, fontWeight: 600, letterSpacing: -4, lineHeight: 1.05, color: "var(--cream)" }, content: str(f.quote) },
+    { id: uid("el"), type: "shape", x: 120, y: 730, w: 72, h: 3, rotation: 0, style: { background: "var(--cream)" } },
+    { id: uid("el"), type: "text", x: 220, y: 712, w: 900, h: 90, rotation: 0, fieldKey: "attribution",
+      style: { fontFamily: "var(--font-body)", fontSize: 30, lineHeight: 1.5, color: "var(--cream)", opacity: 0.92 }, content: str(f.attribution) },
+  ],
 };

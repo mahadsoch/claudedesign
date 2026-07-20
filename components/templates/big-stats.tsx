@@ -1,6 +1,8 @@
 import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
+import { uid } from "@/lib/model/deck";
 import { Stage, Kicker, parseAccents } from "./_shared/primitives";
+import type { SlideElement } from "@/lib/model/deck";
 
 export const bigStats: TemplateDef = {
   id: "big-stats",
@@ -80,5 +82,32 @@ export const bigStats: TemplateDef = {
         )}
       </Stage>
     );
+  },
+  expand: (f) => {
+    const stats = rows(f.stats);
+    const els: SlideElement[] = [
+      { id: uid("el"), type: "text", x: 120, y: 100, w: 1000, h: 32, rotation: 0, fieldKey: "kicker",
+        style: { fontFamily: "var(--font-mono)", fontSize: 24, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: "var(--coral)" }, content: str(f.kicker) },
+      { id: uid("el"), type: "text", x: 120, y: 150, w: 1400, h: 90, rotation: 0, fieldKey: "title",
+        style: { fontFamily: "var(--font-title)", fontSize: 72, fontWeight: 600, letterSpacing: -2, lineHeight: 1.08, color: "var(--cream)" }, content: str(f.title) },
+    ];
+    const colW = Math.floor((1680 - 80 * (stats.length - 1)) / Math.max(stats.length, 1));
+    stats.forEach((s, i) => {
+      const x = 120 + i * (colW + 80);
+      els.push(
+        { id: uid("el"), type: "shape", x, y: 300, w: colW, h: 2, rotation: 0, style: { background: "var(--border-dark)" } },
+        { id: uid("el"), type: "text", x, y: 330, w: colW, h: 200, rotation: 0,
+          style: { fontFamily: "var(--font-title)", fontSize: 190, fontWeight: 600, letterSpacing: -6, lineHeight: 0.95, color: i === 0 ? "var(--coral)" : "var(--cream)" }, content: `${s.value ?? ""}${s.unit ?? ""}` },
+        { id: uid("el"), type: "text", x, y: 560, w: colW, h: 50, rotation: 0,
+          style: { fontFamily: "var(--font-body)", fontSize: 30, lineHeight: 1.4, color: "var(--body-dark-2)" }, content: s.label ?? "" },
+        { id: uid("el"), type: "text", x, y: 620, w: colW, h: 34, rotation: 0,
+          style: { fontFamily: "var(--font-mono)", fontSize: 24, letterSpacing: 3, color: "var(--warm-gray)" }, content: s.source ?? "" }
+      );
+    });
+    if (str(f.takeaway)) {
+      els.push({ id: uid("el"), type: "text", x: 120, y: 940, w: 1600, h: 60, rotation: 0, fieldKey: "takeaway",
+        style: { fontFamily: "var(--font-title)", fontSize: 36, fontWeight: 500, lineHeight: 1.4, color: "var(--cream)" }, content: str(f.takeaway) });
+    }
+    return els;
   },
 };

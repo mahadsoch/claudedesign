@@ -2,6 +2,7 @@ import type { Slide } from "@/lib/model/deck";
 import type { RenderCtx } from "./templates/types";
 import { getTemplate } from "./templates/registry";
 import { Stage } from "./templates/_shared/primitives";
+import { FreeformSlide } from "./canvas/FreeformSlide";
 
 /**
  * Renders a single slide. A template renders content into its own Stage; the
@@ -9,6 +10,10 @@ import { Stage } from "./templates/_shared/primitives";
  * When a slide has explicit `elements` (Phase 3 freeform) they render on top.
  */
 export function SlideRenderer({ slide, ctx }: { slide: Slide; ctx: RenderCtx }) {
+  // Detached slides render from their element list (freeform), not the template.
+  if (slide.elements && slide.elements.length > 0) {
+    return <FreeformSlide slide={slide} ctx={ctx} />;
+  }
   const tpl = getTemplate(slide.template);
   if (!tpl) {
     return (
