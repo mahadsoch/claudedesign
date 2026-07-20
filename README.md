@@ -48,12 +48,28 @@ against IndexedDB, no accounts or external services required.
 
 ### Enable "Generate with AI" (optional)
 
+Pick one of two providers, both wired up in `app/api/generate/route.ts`:
+
+**Option 1 — Anthropic API key**
 1. Copy the env example: `cp .env.local.example .env.local`
 2. Get a key at https://console.anthropic.com/ and set `ANTHROPIC_API_KEY` in
-   `.env.local`. The key stays server-side (used only by `app/api/generate/route.ts`)
-   and is never shipped to the browser.
-3. Restart `npm run dev`, then use the **✦ Generate with AI** button in the
-   editor toolbar.
+   `.env.local`. The key stays server-side and is never shipped to the browser.
+
+**Option 2 — local Claude Code CLI session**
+1. Install the [Claude Code CLI](https://code.claude.com) and make sure `claude`
+   works from your terminal (logged in with your Claude Pro/Max account or an
+   API key already configured for the CLI).
+2. In `.env.local`, set `AI_PROVIDER=claude-code`. No `ANTHROPIC_API_KEY` needed
+   in this app — generation shells out to `claude -p` and rides on your existing
+   CLI session. Use `CLAUDE_CODE_BIN` if the binary isn't on `PATH`, and
+   `CLAUDE_CODE_MODEL` to pin a model.
+
+If neither `AI_PROVIDER` nor `ANTHROPIC_API_KEY` is set, generation fails with
+a message telling you to configure one. If `ANTHROPIC_API_KEY` is set and
+`AI_PROVIDER` isn't, the app defaults to the API.
+
+Restart `npm run dev` after changing `.env.local`, then use the
+**✦ Generate with AI** button in the editor toolbar.
 
 ### PDF export
 

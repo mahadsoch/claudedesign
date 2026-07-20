@@ -4,6 +4,7 @@ import path from "path";
 import Anthropic from "@anthropic-ai/sdk";
 import { templateCatalog, TEMPLATE_IDS } from "@/lib/ai/templateSchema";
 import { validateDeck } from "@/lib/ai/validateDeck";
+import { generateWithClaudeCode, ClaudeCodeUnavailableError } from "@/lib/ai/claudeCode";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -26,11 +27,26 @@ function extractJson(text: string): unknown {
   return JSON.parse(body.slice(start, end + 1));
 }
 
+// "anthropic-api" calls the Anthropic API directly with ANTHROPIC_API_KEY.
+// "claude-code" shells out to a locally-installed `claude` CLI session instead
+// — no API key needed in this app, it rides on whatever the CLI is already
+// authenticated with. AI_PROVIDER picks one explicitly; otherwise we default
+// to the API key if present, else fall back to the CLI.
+function resolveProvider(): "anthropic-api" | "claude-code" {
+  const explicit = process.env.AI_PROVIDER?.toLowerCase();
+  if (explicit === "claude-code" || explicit === "anthropic-api") return explicit;
+  return process.env.ANTHROPIC_API_KEY ? "anthropic-api" : "claude-code";
+}
+
 export async function POST(req: Request) {
+  const provider = resolveProvider();
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  if (provider === "anthropic-api" && !apiKey) {
     return NextResponse.json(
-      { error: "No ANTHROPIC_API_KEY set. Add it to .env.local to use AI generation." },
+      {
+        error:
+          "No ANTHROPIC_API_KEY set. Add it to .env.local, or set AI_PROVIDER=claude-code to use a local Claude Code CLI session instead.",
+      },
       { status: 400 }
     );
   }
@@ -64,30 +80,41 @@ Return ONLY a JSON object of the shape:
 { "meta": { "title": string }, "slides": [ { "template": string, "fields": object }, ... ] }
 No prose, no markdown fences.`;
 
-  const client = new Anthropic({ apiKey });
+  const userMessage = `Create a ${count}-slide deck for this brief:\n\n${brief}`;
 
   try {
-    const message = await client.messages.create({
-      model: "claude-opus-4-8",
-      max_tokens: 16000,
-      system,
-      messages: [
-        {
-          role: "user",
-          content: `Create a ${count}-slide deck for this brief:\n\n${brief}`,
-        },
-      ],
-    });
+    const text =
+      provider === "claude-code"
+        ? await generateWithClaudeCode(`${system}\n\n${userMessage}`, {
+            model: process.env.CLAUDE_CODE_MODEL,
+          })
+        : await callAnthropicApi(apiKey!, system, userMessage);
 
-    const textBlock = message.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      return NextResponse.json({ error: "Model returned no text." }, { status: 502 });
-    }
-
-    const raw = extractJson(textBlock.text);
+    const raw = extractJson(text);
     const deck = validateDeck(raw, "AI draft");
     return NextResponse.json({ deck });
   } catch (e) {
+    if (e instanceof ClaudeCodeUnavailableError) {
+      return NextResponse.json(
+        { error: `${e.message} Or set ANTHROPIC_API_KEY / AI_PROVIDER=anthropic-api to use the API instead.` },
+        { status: 400 }
+      );
+    }
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
+}
+
+async function callAnthropicApi(apiKey: string, system: string, userMessage: string): Promise<string> {
+  const client = new Anthropic({ apiKey });
+  const message = await client.messages.create({
+    model: "claude-opus-4-8",
+    max_tokens: 16000,
+    system,
+    messages: [{ role: "user", content: userMessage }],
+  });
+  const textBlock = message.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error("Model returned no text.");
+  }
+  return textBlock.text;
 }
