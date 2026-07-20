@@ -20,6 +20,10 @@ export function EditorLayout() {
   const setDeckTitle = useDeck((s) => s.setDeckTitle);
   const bumpImages = useDeck((s) => s.bumpImages);
   const replaceDeck = useDeck((s) => s.replaceDeck);
+  const undo = useDeck((s) => s.undo);
+  const redo = useDeck((s) => s.redo);
+  const canUndo = useDeck((s) => s.past.length > 0);
+  const canRedo = useDeck((s) => s.future.length > 0);
 
   const [pdfBusy, setPdfBusy] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
@@ -28,6 +32,22 @@ export function EditorLayout() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Global undo/redo shortcuts (ignore while typing in a field).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod || e.key.toLowerCase() !== "z") return;
+      const el = document.activeElement;
+      const typing = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
+      if (typing) return; // let the field handle its own undo
+      e.preventDefault();
+      if (e.shiftKey) redo();
+      else undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
 
   // Warm object URLs for any blob image refs, then force a re-render.
   useEffect(() => {
@@ -95,6 +115,12 @@ export function EditorLayout() {
             width: 260,
           }}
         />
+        <button className="btn" title="Undo (⌘Z)" onClick={undo} disabled={!canUndo} style={{ padding: "9px 11px" }}>
+          ↺
+        </button>
+        <button className="btn" title="Redo (⇧⌘Z)" onClick={redo} disabled={!canRedo} style={{ padding: "9px 11px" }}>
+          ↻
+        </button>
         <div className="spacer" />
         <button className="btn primary" onClick={() => setShowGenerate(true)}>
           ✦ Generate with AI

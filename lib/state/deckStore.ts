@@ -23,6 +23,14 @@ interface DeckState {
   imageVersion: number; // bumped when async image URLs warm, to force re-render
   hydrated: boolean;
 
+  // Undo/redo: snapshot stacks. Kept outside `deck` so they never autosave.
+  past: Deck[];
+  future: Deck[];
+  _coalesceKey: string | null;
+  _coalesceTs: number;
+  undo: () => void;
+  redo: () => void;
+
   hydrate: () => Promise<void>;
   select: (id: string) => void;
   setDeckTitle: (title: string) => void;
@@ -41,12 +49,30 @@ interface DeckState {
   replaceDeck: (deck: Deck) => void;
 }
 
+const HISTORY_CAP = 50;
+const COALESCE_MS = 600;
+
+// Every deck mutation flows through here, so history + autosave are automatic.
+// Pass a `coalesceKey` for rapid edits (typing) so consecutive same-key changes
+// within COALESCE_MS collapse into one undo step instead of one per keystroke.
 function commit(set: (fn: (s: DeckState) => Partial<DeckState>) => void) {
-  return (mutator: (deck: Deck) => Deck) =>
+  return (mutator: (deck: Deck) => Deck, coalesceKey?: string) =>
     set((s) => {
-      const deck = mutator(s.deck);
+      const prev = s.deck;
+      const deck = mutator(prev);
+      if (deck === prev) return {};
       scheduleSave(deck);
-      return { deck };
+      const now = Date.now();
+      const coalesce =
+        coalesceKey != null && s._coalesceKey === coalesceKey && now - s._coalesceTs < COALESCE_MS;
+      const past = coalesce ? s.past : [...s.past, prev].slice(-HISTORY_CAP);
+      return {
+        deck,
+        past,
+        future: [],
+        _coalesceKey: coalesceKey ?? null,
+        _coalesceTs: now,
+      };
     });
 }
 
@@ -62,21 +88,51 @@ export const useDeck = create<DeckState>((set, get) => {
     selectedId: null,
     imageVersion: 0,
     hydrated: false,
+    past: [],
+    future: [],
+    _coalesceKey: null,
+    _coalesceTs: 0,
 
     hydrate: async () => {
       try {
         const saved = await loadDeck();
         const deck = saved && saved.slides?.length ? saved : seedDeck();
-        set({ deck, selectedId: deck.slides[0]?.id ?? null, hydrated: true });
+        set({ deck, selectedId: deck.slides[0]?.id ?? null, hydrated: true, past: [], future: [] });
         if (!saved) scheduleSave(deck);
       } catch {
         const deck = seedDeck();
-        set({ deck, selectedId: deck.slides[0]?.id ?? null, hydrated: true });
+        set({ deck, selectedId: deck.slides[0]?.id ?? null, hydrated: true, past: [], future: [] });
       }
     },
 
+    undo: () =>
+      set((s) => {
+        if (s.past.length === 0) return {};
+        const prev = s.past[s.past.length - 1];
+        scheduleSave(prev);
+        return {
+          deck: prev,
+          past: s.past.slice(0, -1),
+          future: [s.deck, ...s.future].slice(0, HISTORY_CAP),
+          _coalesceKey: null,
+        };
+      }),
+
+    redo: () =>
+      set((s) => {
+        if (s.future.length === 0) return {};
+        const next = s.future[0];
+        scheduleSave(next);
+        return {
+          deck: next,
+          future: s.future.slice(1),
+          past: [...s.past, s.deck].slice(-HISTORY_CAP),
+          _coalesceKey: null,
+        };
+      }),
+
     select: (id) => set({ selectedId: id }),
-    setDeckTitle: (title) => withDeck((d) => ({ ...d, meta: { ...d.meta, title } })),
+    setDeckTitle: (title) => withDeck((d) => ({ ...d, meta: { ...d.meta, title } }), "deck-title"),
 
     addSlide: (templateId) => {
       const tpl = getTemplate(templateId);
@@ -129,15 +185,20 @@ export const useDeck = create<DeckState>((set, get) => {
     },
 
     setField: (slideId, key, value) =>
-      withDeck((d) => mapSlides(d, slideId, (sl) => ({ ...sl, fields: { ...sl.fields, [key]: value } }))),
+      withDeck(
+        (d) => mapSlides(d, slideId, (sl) => ({ ...sl, fields: { ...sl.fields, [key]: value } })),
+        `field:${slideId}:${key}`
+      ),
 
     setListItem: (slideId, key, index, itemKey, value) =>
-      withDeck((d) =>
-        mapSlides(d, slideId, (sl) => {
-          const list = [...((sl.fields[key] as Record<string, string>[]) ?? [])];
-          list[index] = { ...list[index], [itemKey]: value };
-          return { ...sl, fields: { ...sl.fields, [key]: list } };
-        })
+      withDeck(
+        (d) =>
+          mapSlides(d, slideId, (sl) => {
+            const list = [...((sl.fields[key] as Record<string, string>[]) ?? [])];
+            list[index] = { ...list[index], [itemKey]: value };
+            return { ...sl, fields: { ...sl.fields, [key]: list } };
+          }),
+        `list:${slideId}:${key}:${index}:${itemKey}`
       ),
 
     addListItem: (slideId, key) =>
@@ -162,9 +223,16 @@ export const useDeck = create<DeckState>((set, get) => {
       ),
 
     bumpImages: () => set((s) => ({ imageVersion: s.imageVersion + 1 })),
-    replaceDeck: (deck) => {
-      scheduleSave(deck);
-      set({ deck, selectedId: deck.slides[0]?.id ?? null });
-    },
+    replaceDeck: (deck) =>
+      set((s) => {
+        scheduleSave(deck);
+        return {
+          deck,
+          selectedId: deck.slides[0]?.id ?? null,
+          past: [...s.past, s.deck].slice(-HISTORY_CAP),
+          future: [],
+          _coalesceKey: null,
+        };
+      }),
   };
 });
