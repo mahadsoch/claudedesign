@@ -1,0 +1,29 @@
+/* Print stylesheet — used by the standalone /print route that Playwright loads
+   (and also works for a manual browser "Save as PDF" fallback).
+   One slide per physical page at exact design size, backgrounds preserved. */
+@media print {
+  @page {
+    size: 1920px 1080px;
+    margin: 0;
+  }
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+  .print-slide {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    break-after: page;
+    page-break-after: always;
+    /* Chrome strips dark/coral backgrounds when saving ink unless this is set */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-slide:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}

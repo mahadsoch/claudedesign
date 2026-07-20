@@ -1,0 +1,51 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Soch brand tokens — extracted verbatim from the source deck
+   ("AI-Native Teams Deck"). This file is the single source of brand truth.
+   Every template references var(--…); never hard-code a hex.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Core palette */
+  --cream: #fcf5eb;
+  --ink: #141414;
+  --coral: #f15944;
+  --coral-hover: #c7452f;
+  --stone: #ececd4;
+  --warm-gray: #8a8578;
+
+  /* Body text on dark backgrounds */
+  --body-dark: #b9b3a4;
+  --body-dark-2: #e8e1d2;
+  --body-dark-3: #c9c2b0;
+
+  /* Body text on light backgrounds */
+  --body-light: #6b6558;
+
+  /* Borders / card surfaces */
+  --border-dark: #3a362e;
+  --border-light: #141414;
+  --card-border: #d9d2c0;
+  --card-fill: #ffffff;
+
+  /* Fonts (wired to next/font CSS variables set on <body>) */
+  --font-title: var(--font-poppins), "Poppins", sans-serif;
+  --font-body: var(--font-open-sans), "Open Sans", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
+
+  /* Canvas geometry */
+  --stage-w: 1920px;
+  --stage-h: 1080px;
+}
+
+/* Background helpers used by slide stages */
+.bg-dark {
+  background: var(--ink);
+  color: var(--cream);
+}
+.bg-cream {
+  background: var(--cream);
+  color: var(--ink);
+}
+.bg-coral {
+  background: var(--coral);
+  color: var(--cream);
+}
