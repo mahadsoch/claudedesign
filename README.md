@@ -43,8 +43,10 @@ The PDF route uses Playwright + Chromium. If Chromium isn't found, set
 ## Roadmap
 
 - **Phase 2** — AI first-draft generation (`/api/generate`, set
-  `ANTHROPIC_API_KEY` in `.env.local`), now content-aware in its template
-  selection; undo/redo.
+  `ANTHROPIC_API_KEY` in `.env.local`). Two-pass: the model first plans each
+  slide's intent + content type, the server maps that to the best-fit template
+  (content-type taxonomy + keyword ranker + variety rules), then a second pass
+  fills the fields — so template choice is grounded in content. Undo/redo.
 - **Phase 3** — freeform canvas (move/resize/add any element).
 
 ## How it's built
