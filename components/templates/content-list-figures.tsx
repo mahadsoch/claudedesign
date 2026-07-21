@@ -7,6 +7,8 @@ import { Stage, AccentTitle, parseAccents } from "./_shared/primitives";
 export const contentListFigures: TemplateDef = {
   id: "content-list-figures",
   name: "Content · figures list",
+  description: "A vertical list of figure + heading + description rows for framed points.",
+  tags: ["list", "points", "figures", "breakdown", "content"],
   background: "cream",
   fields: [
     { key: "title", type: "textarea", label: "Title", maxLength: 90, hint: "Wrap accent in [[…]]" },

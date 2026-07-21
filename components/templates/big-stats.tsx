@@ -7,6 +7,8 @@ import type { SlideElement } from "@/lib/model/deck";
 export const bigStats: TemplateDef = {
   id: "big-stats",
   name: "Big stats",
+  description: "Up to three giant metrics that carry the slide, with a takeaway line.",
+  tags: ["stats", "metrics", "numbers", "data", "impact"],
   background: "dark",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 40 },

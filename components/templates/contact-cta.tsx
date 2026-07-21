@@ -7,6 +7,8 @@ import { Stage, Kicker, AccentTitle, ImageBox, Logo } from "./_shared/primitives
 export const contactCta: TemplateDef = {
   id: "contact-cta",
   name: "Contact / CTA",
+  description: "Close the deck: a call to action, contact line and closing image.",
+  tags: ["contact", "cta", "closing", "end", "book"],
   background: "dark",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 40 },

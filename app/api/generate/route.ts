@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import Anthropic from "@anthropic-ai/sdk";
-import { templateCatalog, TEMPLATE_IDS } from "@/lib/ai/templateSchema";
+import { templateCatalog, templateSpec, TEMPLATE_IDS } from "@/lib/ai/templateSchema";
 import { validateDeck } from "@/lib/ai/validateDeck";
 import { runClaudeCode, ClaudeCodeNotInstalledError } from "@/lib/ai/claudeCode";
+import { chooseTemplates, contentTypeMenu, type PlanBeat } from "@/lib/ai/selectTemplate";
+import { getTemplate } from "@/components/templates/registry";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -42,14 +44,98 @@ function extractJson(text: string): unknown {
   return JSON.parse(body.slice(start, end + 1));
 }
 
-/** Build the shared system + user prompts. Both providers use these verbatim. */
-function buildPrompt(brief: string, count: number): { system: string; user: string } {
+/** Run one prompt through the active provider (billed API or Claude Code CLI). */
+async function callModel(
+  provider: Provider,
+  system: string,
+  user: string,
+  maxTokens: number
+): Promise<string> {
+  if (provider === "claude-code") {
+    return runClaudeCode(system, user, { model: MODEL });
+  }
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: maxTokens,
+    system,
+    messages: [{ role: "user", content: user }],
+  });
+  const block = message.content.find((b) => b.type === "text");
+  if (!block || block.type !== "text") throw new Error("Model returned no text.");
+  return block.text;
+}
+
+// ── Phase 1: plan the deck as intent + content-type beats ────────────────────
+async function planDeck(
+  provider: Provider,
+  brief: string,
+  count: number
+): Promise<{ title: string; beats: PlanBeat[] }> {
+  const system = `You plan on-brand slide decks for the brand "Soch". You do NOT write slide content yet — you decide, for each slide, what it is ABOUT and which KIND of slide it is.
+
+Return ONLY JSON: { "meta": { "title": string }, "slides": [ { "intent": string, "contentType": string } ] } with exactly ${count} slides.
+- "intent": ≤110 chars — the single point or heading this slide makes.
+- "contentType": exactly one id from the menu below, chosen to match the intent.
+
+CONTENT TYPES:
+${contentTypeMenu()}
+
+Rules: open with a "cover" slide and close with "nextsteps" or "closing". Pick the most SPECIFIC content type for each beat (e.g. pricing, roadmap, team, results, comparison) rather than defaulting to generic lists. Vary the content types. For a proposal / executive-review brief a strong spine is: cover → agenda → context → problem → approach → features → impact → roadmap → pricing → team → nextsteps, adapted to the brief.
+
+No prose, no markdown fences.`;
+
+  const raw = extractJson(
+    await callModel(provider, system, `Plan a ${count}-slide deck for this brief:\n\n${brief}`, 3000)
+  ) as { meta?: { title?: string }; slides?: { intent?: unknown; contentType?: unknown }[] };
+  const beats: PlanBeat[] = (Array.isArray(raw.slides) ? raw.slides : [])
+    .map((s) => ({ intent: String(s?.intent ?? ""), contentType: String(s?.contentType ?? "") }))
+    .slice(0, count);
+  if (beats.length === 0) throw new Error("Empty plan");
+  return { title: raw.meta?.title || "AI draft", beats };
+}
+
+// ── Phase 2: fill the fields for the templates chosen for each beat ───────────
+async function fillDeck(
+  provider: Provider,
+  brief: string,
+  title: string,
+  beats: PlanBeat[],
+  templateIds: string[]
+) {
+  const slideSpecs = templateIds
+    .map((id, i) => `SLIDE ${i + 1} — template "${id}"\nintent: ${beats[i].intent}\n${templateSpec(id)}`)
+    .join("\n\n");
+
+  const system = `You write the content for an on-brand slide deck for the brand "Soch". The template for each slide is ALREADY CHOSEN and fixed — do not change it. Fill each slide's fields to match its schema exactly (use the exact field keys; fill list items sensibly and within the item caps). Titles may contain ONE coral accent using [[double brackets]]. Write in the Soch voice: practical, direct, confident, short declarative sentences, no hype.
+
+Return ONLY JSON: { "slides": [ { "fields": { ... } } ] } with exactly ${beats.length} entries, in the SAME order as the slides below. No "template" key, no prose, no markdown fences.
+
+=== BRAND CONTRACT (DESIGN.md) ===
+${readDesignContract()}
+
+=== SLIDES TO FILL (in order) ===
+${slideSpecs}`;
+
+  const raw = extractJson(
+    await callModel(provider, system, `Fill in the deck content, staying true to this brief:\n\n${brief}`, 16000)
+  ) as { slides?: { fields?: unknown }[] };
+  const filled = Array.isArray(raw.slides) ? raw.slides : [];
+
+  // Assemble a raw deck with server-fixed templates; validateDeck coerces
+  // fields to each schema and fills any gaps from defaults.
+  const slides = templateIds.map((template, i) => ({ template, fields: filled[i]?.fields ?? {} }));
+  return validateDeck({ meta: { title }, slides }, title);
+}
+
+// ── Fallback: single-pass generation (model picks templates + fills at once) ──
+async function singlePass(provider: Provider, brief: string, count: number) {
   const system = `You generate on-brand slide decks for the brand "Soch" as structured JSON.
 
 You may ONLY use these template ids: ${TEMPLATE_IDS.join(", ")}.
-Every slide is { "template": <one of the ids>, "fields": { ... } } where fields match that template's schema exactly (use the field keys shown; omit or fill list items sensibly). Titles may contain ONE coral accent using [[double brackets]] around the highlighted words.
+Every slide is { "template": <one of the ids>, "fields": { ... } } where fields match that template's schema exactly. Titles may contain ONE coral accent using [[double brackets]].
 
-Follow the brand contract and background rhythm below. Open with a title-hero, close with a contact-cta, and vary backgrounds so heavy slides (dark/coral) don't repeat back-to-back unless intentional.
+For each slide, decide what the content IS, then pick the template whose "when to use" line and tags match it — reach for the specific template (pricing-tiers, roadmap-phases, process-stages, team-grid, step-timeline…) rather than generic lists. Open with a title/cover, close with a call to action, and vary backgrounds.
 
 === BRAND CONTRACT (DESIGN.md) ===
 ${readDesignContract()}
@@ -57,28 +143,11 @@ ${readDesignContract()}
 === TEMPLATE CATALOG ===
 ${templateCatalog()}
 
-Return ONLY a JSON object of the shape:
-{ "meta": { "title": string }, "slides": [ { "template": string, "fields": object }, ... ] }
-No prose, no markdown fences.`;
-
-  const user = `Create a ${count}-slide deck for this brief:\n\n${brief}`;
-  return { system, user };
-}
-
-/** Generate via the billed Anthropic API. Returns the model's text. */
-async function generateViaApi(system: string, user: string): Promise<string> {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 16000,
-    system,
-    messages: [{ role: "user", content: user }],
-  });
-  const textBlock = message.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("Model returned no text.");
-  }
-  return textBlock.text;
+Return ONLY a JSON object: { "meta": { "title": string }, "slides": [ { "template": string, "fields": object } ] }. No prose, no fences.`;
+  const raw = extractJson(
+    await callModel(provider, system, `Create a ${count}-slide deck for this brief:\n\n${brief}`, 16000)
+  );
+  return validateDeck(raw, "AI draft");
 }
 
 export async function POST(req: Request) {
@@ -105,17 +174,20 @@ export async function POST(req: Request) {
   }
 
   const count = Math.min(Math.max(Number(slideCount) || 8, 3), 20);
-  const { system, user } = buildPrompt(brief, count);
 
   try {
-    const text =
-      provider === "claude-code"
-        ? await runClaudeCode(system, user, { model: MODEL })
-        : await generateViaApi(system, user);
-
-    const raw = extractJson(text);
-    const deck = validateDeck(raw, "AI draft");
-    return NextResponse.json({ deck });
+    // Content-driven flow: plan → choose templates server-side → fill. Fall back
+    // to single-pass generation if the planning phase can't produce an outline.
+    try {
+      const { title, beats } = await planDeck(provider, brief, count);
+      const templateIds = chooseTemplates(beats).filter((id) => getTemplate(id));
+      const deck = await fillDeck(provider, brief, title, beats, templateIds);
+      return NextResponse.json({ deck });
+    } catch (planErr) {
+      if (planErr instanceof ClaudeCodeNotInstalledError) throw planErr;
+      const deck = await singlePass(provider, brief, count);
+      return NextResponse.json({ deck });
+    }
   } catch (e) {
     if (e instanceof ClaudeCodeNotInstalledError) {
       return NextResponse.json(

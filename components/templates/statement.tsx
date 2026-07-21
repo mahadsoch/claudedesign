@@ -5,6 +5,8 @@ import { Stage, Kicker, parseAccents } from "./_shared/primitives";
 export const statement: TemplateDef = {
   id: "statement",
   name: "Statement",
+  description: "A single large statement centered on a dark slide — a bold anchor moment.",
+  tags: ["statement", "manifesto", "thesis", "anchor", "section"],
   background: "dark",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 40 },

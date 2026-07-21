@@ -9,19 +9,28 @@ no accounts, no cloud. Decks are saved in your browser (IndexedDB).
 
 ## What's possible
 
-- **13 on-brand templates** — title/hero, agenda (2×2), pull quote, big stats,
-  content list w/ figures, logo stack grid, statement, 2×2 matrix, quadrant
-  highlight, two-column compare, results/numbers, operating principle, and
+- **25 on-brand templates** — from title/hero, cover card, agenda and pull
+  quote through the full proposal set (context + stat rail, three-column
+  problem, phased process, feature grid, impact + highlight, "you are here"
+  roadmap, pricing tiers, team grid, featured bio, next-steps timeline) to the
   contact/CTA. Add / reorder / duplicate / delete slides from the slide rail.
+- **Template library** — a "＋ Add slide from template" / "▦ Templates" gallery
+  with a live preview and a "when to use" note per template, plus a one-click
+  **Executive Review** starter deck that lays down the full proposal narrative.
+  Search by what the slide is about (pricing, roadmap, team…) to surface the
+  best-fit template first.
 - **Text & image editing** — a field inspector generated from each template's
   schema, with brand guardrails baked in; upload & swap images (auto-downscaled,
   stored locally in IndexedDB).
 - **Accent syntax** — wrap the coral highlight in a title with
   `[[double brackets]]`, e.g. `How to build [[AI-native]] teams.`
 - **Generate with AI** — describe a deck in plain English and Claude drafts a
-  full set of on-brand slides (picking templates + filling fields) that you
-  then tweak by hand. Authenticate with an `ANTHROPIC_API_KEY` **or** your
-  Claude Code subscription login (see Setup).
+  full set of on-brand slides that you then tweak by hand. Template choice is
+  content-driven: Claude first plans each slide's intent + content type, the
+  server maps that to the best-fit template (content-type taxonomy + keyword
+  ranker + variety rules), then a second pass fills the fields. Authenticate
+  with an `ANTHROPIC_API_KEY` **or** your Claude Code subscription login (see
+  Setup).
 - **Freeform canvas** — "detach" any slide to move, resize, restyle, or add
   text/shape/image elements beyond the template's fixed fields, with layering,
   duplication, and a one-click "reset to template" to discard the overrides.

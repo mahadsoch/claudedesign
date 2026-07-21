@@ -7,6 +7,8 @@ const NUMERALS = ["i.", "ii.", "iii.", "iv."];
 export const agenda2x2: TemplateDef = {
   id: "agenda-2x2",
   name: "Agenda · 2×2",
+  description: "A four-point agenda or overview laid out as a 2×2 grid with roman numerals.",
+  tags: ["agenda", "overview", "contents", "sections", "outline"],
   background: "cream",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 40 },
