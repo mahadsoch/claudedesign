@@ -5,6 +5,8 @@ import { Stage, Kicker, ImageBox, parseAccents } from "./_shared/primitives";
 export const logoStackGrid: TemplateDef = {
   id: "logo-stack-grid",
   name: "Logo / tool grid",
+  description: "A grid of logos or tools — your stack, integrations, or client roster.",
+  tags: ["logos", "tools", "stack", "integrations", "clients"],
   background: "cream",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 40 },

@@ -162,6 +162,73 @@ export function ImageBox({
   );
 }
 
+// ── IconChip: a small coral-tinted rounded square holding an icon image ───────
+// Mirrors the peach icon chips in the proposal decks. Falls back to a coral dot
+// when no icon image is set, so a fresh slide still looks intentional.
+export function IconChip({
+  src,
+  size = 72,
+  radius = 16,
+}: {
+  src?: string;
+  size?: number;
+  radius?: number;
+}) {
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        flex: `0 0 ${size}px`,
+        borderRadius: radius,
+        background: "var(--coral-chip)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+      }}
+    >
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" style={{ width: "58%", height: "58%", objectFit: "contain" }} />
+      ) : (
+        <div style={{ width: size * 0.3, height: size * 0.3, borderRadius: 9999, background: "var(--coral)" }} />
+      )}
+    </div>
+  );
+}
+
+// ── SectionHead: the coral kicker + Poppins title used to open a content slide ─
+export function SectionHead({
+  kicker,
+  title,
+  size = 64,
+  style,
+}: {
+  kicker?: string;
+  title: string;
+  size?: number;
+  style?: CSSProperties;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, ...style }}>
+      {kicker ? <Kicker>{kicker}</Kicker> : null}
+      <h2
+        style={{
+          fontFamily: "var(--font-title)",
+          fontWeight: 600,
+          fontSize: size,
+          letterSpacing: -2,
+          lineHeight: 1.06,
+          margin: 0,
+        }}
+      >
+        {parseAccents(title)}
+      </h2>
+    </div>
+  );
+}
+
 // ── Logo lockup (uses /public/assets/soch-logo.png) ──────────────────────────
 export function Logo({ height = 52 }: { height?: number }) {
   // eslint-disable-next-line @next/next/no-img-element

@@ -7,6 +7,8 @@ import { Stage, Kicker, AccentTitle, ImageBox, Logo } from "./_shared/primitives
 export const titleHero: TemplateDef = {
   id: "title-hero",
   name: "Title / Hero",
+  description: "Open the deck: logo, kicker, one big accented title, subtitle and a hero image.",
+  tags: ["title", "cover", "opening", "hero", "intro"],
   background: "dark",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 40, placeholder: "A PRACTICAL PLAYBOOK · 2026" },

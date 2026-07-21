@@ -7,6 +7,8 @@ import { Stage } from "./_shared/primitives";
 export const pullQuote: TemplateDef = {
   id: "pull-quote",
   name: "Pull quote",
+  description: "One short, high-impact quote or belief on a full coral background.",
+  tags: ["quote", "belief", "emotional", "testimonial", "principle"],
   background: "coral",
   fields: [
     { key: "quote", type: "textarea", label: "Quote", maxLength: 120 },

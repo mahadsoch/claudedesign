@@ -26,6 +26,10 @@
   --card-border: #d9d2c0;
   --card-fill: #ffffff;
 
+  /* Coral washes — soft peach panels + icon chips (used by proposal templates) */
+  --coral-wash: #fbeee9;
+  --coral-chip: #faede8;
+
   /* Fonts (wired to next/font CSS variables set on <body>) */
   --font-title: var(--font-poppins), "Poppins", sans-serif;
   --font-body: var(--font-open-sans), "Open Sans", sans-serif;

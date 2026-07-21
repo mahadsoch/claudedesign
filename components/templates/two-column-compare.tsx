@@ -5,6 +5,8 @@ import { Stage, Kicker, Logo, parseAccents } from "./_shared/primitives";
 export const twoColumnCompare: TemplateDef = {
   id: "two-column-compare",
   name: "Two-column compare",
+  description: "Two options or states compared side by side with bullet points.",
+  tags: ["compare", "versus", "before", "after", "options"],
   background: "dark",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 40 },

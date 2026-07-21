@@ -37,6 +37,18 @@ export interface RenderCtx {
 export interface TemplateDef {
   id: string;
   name: string;
+  /**
+   * One-line "when to use this" guidance. Powers the template gallery and the
+   * AI generator's template-selection logic — write it as advice to a chooser,
+   * e.g. "Use when a single big metric carries the slide."
+   */
+  description: string;
+  /**
+   * Lowercase keywords describing the content this template fits (e.g.
+   * "pricing", "roadmap", "team"). Used to rank templates against slide
+   * content — both in the gallery search and the AI catalog.
+   */
+  tags: string[];
   /** Default background; a slide may override it. */
   background: Background;
   fields: FieldDef[];

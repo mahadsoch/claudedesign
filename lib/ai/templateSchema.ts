@@ -21,6 +21,8 @@ export function templateCatalog(): string {
     const fields = t.fields.map((f) => describeField(f)).join("\n");
     const example = JSON.stringify(t.defaults());
     return `### ${t.id}  (${t.name}, ${t.background} background)
+when to use: ${t.description}
+fits content about: ${t.tags.join(", ")}
 fields:
 ${fields}
 example fields: ${example}`;

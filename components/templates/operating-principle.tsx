@@ -5,6 +5,8 @@ import { Stage, Kicker } from "./_shared/primitives";
 export const operatingPrinciple: TemplateDef = {
   id: "operating-principle",
   name: "Operating principle",
+  description: "Stacked principle rows on coral — how you operate, in a few lines.",
+  tags: ["principles", "values", "how we work", "operating", "approach"],
   background: "coral",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 44 },

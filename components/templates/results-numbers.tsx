@@ -5,6 +5,8 @@ import { Stage, Kicker, Logo, parseAccents } from "./_shared/primitives";
 export const resultsNumbers: TemplateDef = {
   id: "results-numbers",
   name: "Results · number cards",
+  description: "Up to three client-result cards, each with a coral hero figure.",
+  tags: ["results", "case studies", "clients", "outcomes", "numbers"],
   background: "dark",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 44 },

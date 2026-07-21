@@ -10,8 +10,15 @@ no accounts, no cloud. Decks are saved in your browser (IndexedDB).
 ## What works today (Phase 1)
 
 - **Editor** — three-pane UI: slide rail, live 1920×1080 preview, field inspector.
-- **5 on-brand templates** — Title/Hero, Content figures list, Big stats, Pull
-  quote, Contact/CTA. Add / reorder / duplicate / delete slides.
+- **25 on-brand templates** — from title/hero, agenda and pull-quote through the
+  full proposal set (context + stat rail, three-column problem, phased process,
+  feature grid, impact + highlight, roadmap, pricing tiers, team grid, featured
+  bio, next-steps timeline) to the contact CTA. Add / reorder / duplicate /
+  delete slides.
+- **Template library** — a "＋ Add slide from template" / "▦ Templates" gallery
+  with a live preview and a "when to use" note per template, plus a one-click
+  **Executive Review** starter deck. Search by what the slide is about (pricing,
+  roadmap, team…) to surface the best-fit template first.
 - **Text & image editing** — labelled fields with brand guardrails; upload &
   swap images (auto-downscaled, stored locally).
 - **One-click PDF** — true pixel-perfect export via headless Chrome (each slide
@@ -35,8 +42,9 @@ The PDF route uses Playwright + Chromium. If Chromium isn't found, set
 
 ## Roadmap
 
-- **Phase 2** — remaining 8 templates; AI first-draft generation
-  (`/api/generate`, set `ANTHROPIC_API_KEY` in `.env.local`); undo/redo.
+- **Phase 2** — AI first-draft generation (`/api/generate`, set
+  `ANTHROPIC_API_KEY` in `.env.local`), now content-aware in its template
+  selection; undo/redo.
 - **Phase 3** — freeform canvas (move/resize/add any element).
 
 ## How it's built

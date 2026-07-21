@@ -5,6 +5,8 @@ import { Stage, Kicker, parseAccents } from "./_shared/primitives";
 export const quadrantHighlight: TemplateDef = {
   id: "quadrant-highlight",
   name: "Highlight + hero stat",
+  description: "A point with supporting tag pills plus one hero figure below.",
+  tags: ["highlight", "stat", "figure", "metric", "point"],
   background: "cream",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 44 },

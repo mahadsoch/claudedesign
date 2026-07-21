@@ -52,7 +52,9 @@ export async function POST(req: Request) {
 You may ONLY use these template ids: ${TEMPLATE_IDS.join(", ")}.
 Every slide is { "template": <one of the ids>, "fields": { ... } } where fields match that template's schema exactly (use the field keys shown; omit or fill list items sensibly). Titles may contain ONE coral accent using [[double brackets]] around the highlighted words.
 
-Follow the brand contract and background rhythm below. Open with a title-hero, close with a contact-cta, and vary backgrounds so heavy slides (dark/coral) don't repeat back-to-back unless intentional.
+TEMPLATE SELECTION — this matters most: for each slide, first decide what the content IS (a single metric, a comparison, a price breakdown, a roadmap, a team, next steps…), then pick the template whose "when to use" line and "fits content about" tags match that content. Do NOT force everything into a few generic templates — reach for the specific one (e.g. pricing-tiers for cost, roadmap-phases for a phased plan, process-stages for an engagement, step-timeline for next steps, team-grid for people). Never invent an id or field key.
+
+Follow the brand contract and background rhythm below. Open with a title (title-hero or cover-card), close with a call to action (contact-cta or step-timeline), and vary backgrounds so heavy slides (dark/coral) don't repeat back-to-back unless intentional. For a proposal or executive-review brief, a strong spine is: cover/title → agenda → context → problem → approach → what's covered → impact → roadmap → pricing → team → next steps.
 
 === BRAND CONTRACT (DESIGN.md) ===
 ${readDesignContract()}

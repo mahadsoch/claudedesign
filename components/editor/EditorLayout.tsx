@@ -10,6 +10,7 @@ import { SlidePalette } from "./SlidePalette";
 import { PreviewStage } from "./PreviewStage";
 import { Inspector } from "./Inspector";
 import { GenerateModal } from "./GenerateModal";
+import { TemplateGallery } from "./TemplateGallery";
 
 export function EditorLayout() {
   const deck = useDeck((s) => s.deck);
@@ -20,6 +21,7 @@ export function EditorLayout() {
   const setDeckTitle = useDeck((s) => s.setDeckTitle);
   const bumpImages = useDeck((s) => s.bumpImages);
   const replaceDeck = useDeck((s) => s.replaceDeck);
+  const addSlide = useDeck((s) => s.addSlide);
   const undo = useDeck((s) => s.undo);
   const redo = useDeck((s) => s.redo);
   const canUndo = useDeck((s) => s.past.length > 0);
@@ -27,6 +29,7 @@ export function EditorLayout() {
 
   const [pdfBusy, setPdfBusy] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -127,6 +130,9 @@ export function EditorLayout() {
           ↻
         </button>
         <div className="spacer" />
+        <button className="btn" onClick={() => setShowTemplates(true)}>
+          ▦ Templates
+        </button>
         <button className="btn primary" onClick={() => setShowGenerate(true)}>
           ✦ Generate with AI
         </button>
@@ -156,12 +162,33 @@ export function EditorLayout() {
         />
       </div>
 
-      <SlidePalette ctx={ctx} />
+      <SlidePalette ctx={ctx} onBrowse={() => setShowTemplates(true)} />
       {current ? <PreviewStage slide={current} ctx={ctx} /> : <div className="stage-wrap" />}
       <Inspector />
 
       {showGenerate && (
         <GenerateModal onClose={() => setShowGenerate(false)} onGenerated={(d) => replaceDeck(d)} />
+      )}
+
+      {showTemplates && (
+        <TemplateGallery
+          ctx={ctx}
+          onClose={() => setShowTemplates(false)}
+          onInsert={(id) => {
+            addSlide(id);
+            setShowTemplates(false);
+          }}
+          onUseDeck={(d) => {
+            if (
+              deck.slides.length > 0 &&
+              !confirm("Replace the current deck with this template? Your current slides will be cleared.")
+            ) {
+              return;
+            }
+            replaceDeck(d);
+            setShowTemplates(false);
+          }}
+        />
       )}
     </div>
   );

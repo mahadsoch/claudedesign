@@ -23,6 +23,8 @@ function descColor(h: Highlight): string {
 export const matrix2x2: TemplateDef = {
   id: "matrix-2x2",
   name: "2×2 matrix",
+  description: "A labelled 2×2 matrix with X/Y axes to position options or frame a strategy.",
+  tags: ["matrix", "framework", "2x2", "positioning", "strategy"],
   background: "cream",
   fields: [
     { key: "kicker", type: "text", label: "Kicker", maxLength: 44 },
