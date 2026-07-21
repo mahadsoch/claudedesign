@@ -20,7 +20,8 @@ no accounts, no cloud. Decks are saved in your browser (IndexedDB).
   `[[double brackets]]`, e.g. `How to build [[AI-native]] teams.`
 - **Generate with AI** — describe a deck in plain English and Claude drafts a
   full set of on-brand slides (picking templates + filling fields) that you
-  then tweak by hand. Requires `ANTHROPIC_API_KEY` (see Setup).
+  then tweak by hand. Authenticate with an `ANTHROPIC_API_KEY` **or** your
+  Claude Code subscription login (see Setup).
 - **Freeform canvas** — "detach" any slide to move, resize, restyle, or add
   text/shape/image elements beyond the template's fixed fields, with layering,
   duplication, and a one-click "reset to template" to discard the overrides.
@@ -48,12 +49,27 @@ against IndexedDB, no accounts or external services required.
 
 ### Enable "Generate with AI" (optional)
 
+Pick **either** credential — the app auto-selects based on what's available:
+
+**Option A — API key (billed usage)**
+
 1. Copy the env example: `cp .env.local.example .env.local`
 2. Get a key at https://console.anthropic.com/ and set `ANTHROPIC_API_KEY` in
    `.env.local`. The key stays server-side (used only by `app/api/generate/route.ts`)
    and is never shipped to the browser.
 3. Restart `npm run dev`, then use the **✦ Generate with AI** button in the
    editor toolbar.
+
+**Option B — Claude Code (your Pro/Max subscription)**
+
+1. Leave `ANTHROPIC_API_KEY` unset, install the `claude` CLI, and log in with
+   `claude login`.
+2. Generation shells out to `claude` locally and runs through your subscription
+   instead of billed API usage — your credentials never reach the browser.
+
+By default the app uses the API key if one is set, otherwise Claude Code. Force
+one explicitly with `DECK_AI_PROVIDER=api` or `DECK_AI_PROVIDER=claude-code` in
+`.env.local`.
 
 ### PDF export
 
@@ -76,7 +92,8 @@ binary (the app also checks `/opt/pw-browsers/chromium` by default).
 - `lib/persistence/` — IndexedDB (decks + image blobs), JSON transfer.
 - `lib/ai/` — the template catalog fed to Claude and validation of its output
   against the schema before it's accepted into the deck.
-- `app/api/generate/` — the AI drafting endpoint (`ANTHROPIC_API_KEY` required).
+- `app/api/generate/` — the AI drafting endpoint; authenticates via
+  `ANTHROPIC_API_KEY` or, failing that, the local `claude` CLI (`lib/ai/claudeCode.ts`).
 - `app/api/pdf/` + `app/print/` — the deck is rendered by the same components at
   1920×1080 and captured by Playwright, so the PDF matches the editor exactly.
 - `styles/tokens.css` + `DESIGN.md` — the single source of brand truth.
