@@ -61,10 +61,16 @@ export function validateDeck(raw: unknown, title = "Generated deck"): Deck {
     .filter((s) => s.template && getTemplate(s.template))
     .map((s) => {
       const tpl = getTemplate(s.template!)!;
+      // Honour a valid slide-level background override; otherwise fall back to
+      // the template default. Keeps AI/imported per-slide backgrounds intact.
+      const bg =
+        s.background === "dark" || s.background === "cream" || s.background === "coral"
+          ? s.background
+          : tpl.background;
       const slide: Slide = {
         id: s.id || uid("sl"),
         template: s.template!,
-        background: tpl.background,
+        background: bg,
         fields: coerceFields(s.template!, s.fields),
       };
       // Preserve freeform elements if a valid array was supplied (import path).

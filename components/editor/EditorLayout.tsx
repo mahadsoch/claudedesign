@@ -2,15 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDeck } from "@/lib/state/deckStore";
+import { useUI } from "@/lib/state/uiStore";
 import type { RenderCtx } from "@/components/templates/types";
 import { resolveImageSync, resolveImageAsync } from "@/lib/persistence/imageStore";
 import { exportDeckJson, importDeckJson } from "@/lib/persistence/transfer";
 import { exportDeckPdf } from "@/lib/pdf/exportPdf";
+import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { SlidePalette } from "./SlidePalette";
 import { PreviewStage } from "./PreviewStage";
 import { Inspector } from "./Inspector";
 import { GenerateModal } from "./GenerateModal";
 import { TemplateGallery } from "./TemplateGallery";
+import { SaveStatusPill } from "./SaveStatusPill";
+import { Onboarding } from "./Onboarding";
 
 export function EditorLayout() {
   const deck = useDeck((s) => s.deck);
@@ -31,6 +36,8 @@ export function EditorLayout() {
   const [showGenerate, setShowGenerate] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     hydrate();
@@ -88,8 +95,9 @@ export function EditorLayout() {
     setPdfBusy(true);
     try {
       await exportDeckPdf(deck);
+      toast.success("PDF downloaded.");
     } catch (e) {
-      alert((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setPdfBusy(false);
     }
@@ -129,6 +137,7 @@ export function EditorLayout() {
         <button className="btn" title="Redo (⇧⌘Z)" onClick={redo} disabled={!canRedo} style={{ padding: "9px 11px" }}>
           ↻
         </button>
+        <SaveStatusPill />
         <div className="spacer" />
         <button className="btn" onClick={() => setShowTemplates(true)}>
           ▦ Templates
@@ -155,8 +164,11 @@ export function EditorLayout() {
             if (!file) return;
             try {
               replaceDeck(await importDeckJson(file));
+              toast.success("Deck imported.");
             } catch (err) {
-              alert("Could not import: " + (err as Error).message);
+              toast.error("Could not import: " + (err as Error).message);
+            } finally {
+              e.target.value = "";
             }
           }}
         />
@@ -178,18 +190,26 @@ export function EditorLayout() {
             addSlide(id);
             setShowTemplates(false);
           }}
-          onUseDeck={(d) => {
-            if (
-              deck.slides.length > 0 &&
-              !confirm("Replace the current deck with this template? Your current slides will be cleared.")
-            ) {
-              return;
+          onUseDeck={async (d) => {
+            if (deck.slides.length > 0) {
+              const ok = await confirm({
+                title: "Replace the current deck?",
+                body: "Your current slides will be cleared and replaced by this template. You can undo this.",
+                confirmLabel: "Replace deck",
+                danger: true,
+              });
+              if (!ok) return;
             }
             replaceDeck(d);
             setShowTemplates(false);
           }}
         />
       )}
+
+      <Onboarding
+        onGenerate={() => setShowGenerate(true)}
+        onBrowseTemplates={() => setShowTemplates(true)}
+      />
     </div>
   );
 }

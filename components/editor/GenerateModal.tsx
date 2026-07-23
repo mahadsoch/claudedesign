@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { Deck } from "@/lib/model/deck";
+import { useDeck } from "@/lib/state/deckStore";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 export function GenerateModal({
   onClose,
@@ -14,9 +16,22 @@ export function GenerateModal({
   const [count, setCount] = useState(8);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const existingSlides = useDeck((s) => s.deck.slides.length);
+  const confirm = useConfirm();
 
   async function generate() {
     if (!brief.trim()) return;
+    // Generating replaces the whole deck — confirm before spending ~30s on it,
+    // not after, so the user never loses work to a surprise replace.
+    if (existingSlides > 0) {
+      const ok = await confirm({
+        title: "Replace your current deck?",
+        body: `Generating will replace all ${existingSlides} current slide${existingSlides === 1 ? "" : "s"} with a fresh AI draft. You can undo this afterward.`,
+        confirmLabel: "Generate & replace",
+        danger: true,
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -82,6 +97,12 @@ export function GenerateModal({
             {busy ? "Generating…" : "Generate"}
           </button>
         </div>
+        {busy && (
+          <div style={{ marginTop: 12, color: "#9a9a9a", font: "400 12px/1.4 var(--font-body)" }}>
+            Planning the narrative, then writing on-brand copy for each slide — this usually takes
+            20–40 seconds.
+          </div>
+        )}
         {error && (
           <div style={{ marginTop: 12, color: "#ff8a80", font: "400 12px/1.4 var(--font-body)" }}>{error}</div>
         )}

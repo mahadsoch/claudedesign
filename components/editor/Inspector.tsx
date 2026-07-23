@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useDeck } from "@/lib/state/deckStore";
 import { getTemplate } from "@/components/templates/registry";
 import type { FieldDef } from "@/components/templates/types";
+import type { Background } from "@/lib/model/deck";
 import { storeUpload, resolveImageSync } from "@/lib/persistence/imageStore";
 import { ICON_PREFIX, iconNames, renderIcon } from "@/lib/icons/iconSet";
 
@@ -15,6 +16,7 @@ export function Inspector() {
   const dup = useDeck((s) => s.duplicateSlide);
   const move = useDeck((s) => s.moveSlide);
   const detach = useDeck((s) => s.detachSlide);
+  const setBackground = useDeck((s) => s.setSlideBackground);
 
   if (!slide) return <div className="inspector" />;
   const tpl = getTemplate(slide.template);
@@ -40,6 +42,24 @@ export function Inspector() {
         </button>
       </div>
 
+      <div className="field">
+        <label>Background</label>
+        <div className="bg-picker">
+          {(["dark", "cream", "coral"] as Background[]).map((bg) => (
+            <button
+              key={bg}
+              type="button"
+              className={"bg-swatch" + (slide.background === bg ? " is-active" : "")}
+              title={bg[0].toUpperCase() + bg.slice(1)}
+              onClick={() => setBackground(slide.id, bg)}
+            >
+              <span className={"bg-chip bg-chip-" + bg} />
+              {bg}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {detached ? (
         <div style={{ font: "400 13px/1.6 var(--font-body)", color: "#9a9a9a" }}>
           This slide is on the <b style={{ color: "#ddd" }}>freeform canvas</b>. Edit elements
@@ -51,11 +71,16 @@ export function Inspector() {
         </div>
       ) : (
         <>
-          {tpl?.expand && (
+          {tpl && (
             <button
               className="btn"
               style={{ width: "100%", marginBottom: 16 }}
               onClick={() => detach(slide.id)}
+              title={
+                tpl.expand
+                  ? "Break this slide into freely editable elements"
+                  : "Break this slide into freely editable elements (a generic layout you can rearrange)"
+              }
             >
               ✎ Detach to canvas (freeform)
             </button>
@@ -89,7 +114,32 @@ function Field({ slideId, def }: { slideId: string; def: FieldDef }) {
     <div className="field">
       <label>{def.label}</label>
       {def.type === "textarea" ? <textarea rows={2} {...common} /> : <input type="text" {...common} />}
-      {def.hint && <div className="hint">{def.hint}</div>}
+      <HintRow hint={def.hint} length={v.length} maxLength={def.maxLength} />
+    </div>
+  );
+}
+
+// A hint line that also shows a live character count when the field is capped.
+// Counter turns coral as it approaches the cap so brand limits are visible.
+function HintRow({
+  hint,
+  length,
+  maxLength,
+}: {
+  hint?: string;
+  length: number;
+  maxLength?: number;
+}) {
+  if (!hint && maxLength == null) return null;
+  const near = maxLength != null && length >= maxLength * 0.9;
+  return (
+    <div className="hint" style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+      <span>{hint}</span>
+      {maxLength != null && (
+        <span style={{ color: near ? "var(--coral)" : undefined, flex: "0 0 auto", fontFamily: "var(--font-mono)" }}>
+          {length}/{maxLength}
+        </span>
+      )}
     </div>
   );
 }
@@ -215,20 +265,26 @@ function ListField({ slideId, def }: { slideId: string; def: FieldDef }) {
                   onChange={(v) => setItem(slideId, def.key, i, sub.key, v)}
                 />
               ) : sub.type === "textarea" ? (
-                <textarea
-                  rows={2}
-                  value={item[sub.key] ?? ""}
-                  maxLength={sub.maxLength}
-                  onChange={(e) => setItem(slideId, def.key, i, sub.key, e.target.value)}
-                />
+                <>
+                  <textarea
+                    rows={2}
+                    value={item[sub.key] ?? ""}
+                    maxLength={sub.maxLength}
+                    onChange={(e) => setItem(slideId, def.key, i, sub.key, e.target.value)}
+                  />
+                  <HintRow length={(item[sub.key] ?? "").length} maxLength={sub.maxLength} />
+                </>
               ) : (
-                <input
-                  type="text"
-                  value={item[sub.key] ?? ""}
-                  maxLength={sub.maxLength}
-                  placeholder={sub.placeholder}
-                  onChange={(e) => setItem(slideId, def.key, i, sub.key, e.target.value)}
-                />
+                <>
+                  <input
+                    type="text"
+                    value={item[sub.key] ?? ""}
+                    maxLength={sub.maxLength}
+                    placeholder={sub.placeholder}
+                    onChange={(e) => setItem(slideId, def.key, i, sub.key, e.target.value)}
+                  />
+                  <HintRow length={(item[sub.key] ?? "").length} maxLength={sub.maxLength} />
+                </>
               )}
             </div>
           ))}

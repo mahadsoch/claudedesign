@@ -1,19 +1,32 @@
 "use client";
 
 import { create } from "zustand";
-import type { Deck, Slide, FieldValue, SlideElement } from "@/lib/model/deck";
+import type { Deck, Slide, FieldValue, SlideElement, Background } from "@/lib/model/deck";
 import { uid } from "@/lib/model/deck";
 import { getTemplate } from "@/components/templates/registry";
 import { seedDeck } from "@/lib/model/seed";
 import { saveDeck, loadDeck } from "@/lib/persistence/db";
+import { expandGeneric } from "@/components/templates/_shared/expand";
+import { useUI } from "./uiStore";
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let idleTimer: ReturnType<typeof setTimeout> | null = null;
 function scheduleSave(deck: Deck) {
   if (saveTimer) clearTimeout(saveTimer);
+  // Surface progress in the topbar. This writes to a *separate* store, so it
+  // never feeds back into deck history or autosave.
+  useUI.getState().setSaveStatus("saving");
   saveTimer = setTimeout(() => {
-    saveDeck({ ...deck, meta: { ...deck.meta, updatedAt: new Date().toISOString() } }).catch(
-      () => {}
-    );
+    saveDeck({ ...deck, meta: { ...deck.meta, updatedAt: new Date().toISOString() } })
+      .then(() => {
+        useUI.getState().setSaveStatus("saved");
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => useUI.getState().setSaveStatus("idle"), 1600);
+      })
+      .catch(() => {
+        // Previously swallowed silently — now the user sees it failed.
+        useUI.getState().setSaveStatus("error");
+      });
   }, 400);
 }
 
@@ -39,6 +52,8 @@ interface DeckState {
   deleteSlide: (id: string) => void;
   duplicateSlide: (id: string) => void;
   moveSlide: (id: string, dir: -1 | 1) => void;
+  moveSlideTo: (id: string, index: number) => void;
+  setSlideBackground: (id: string, background: Background) => void;
 
   setField: (slideId: string, key: string, value: FieldValue) => void;
   setListItem: (slideId: string, key: string, index: number, itemKey: string, value: string) => void;
@@ -200,6 +215,23 @@ export const useDeck = create<DeckState>((set, get) => {
       withDeck((d) => ({ ...d, slides }));
     },
 
+    // Reorder by dropping a slide at an absolute index (drag-to-reorder in the
+    // rail). One commit → one undo step, regardless of how far it moved.
+    moveSlideTo: (id, index) => {
+      const { deck } = get();
+      const from = deck.slides.findIndex((s) => s.id === id);
+      if (from < 0) return;
+      const clamped = Math.max(0, Math.min(index, deck.slides.length - 1));
+      if (clamped === from) return;
+      const slides = [...deck.slides];
+      const [moved] = slides.splice(from, 1);
+      slides.splice(clamped, 0, moved);
+      withDeck((d) => ({ ...d, slides }));
+    },
+
+    setSlideBackground: (id, background) =>
+      withDeck((d) => mapSlides(d, id, (sl) => ({ ...sl, background }))),
+
     setField: (slideId, key, value) =>
       withDeck(
         (d) => mapSlides(d, slideId, (sl) => ({ ...sl, fields: { ...sl.fields, [key]: value } })),
@@ -248,8 +280,12 @@ export const useDeck = create<DeckState>((set, get) => {
       const slide = deck.slides.find((s) => s.id === slideId);
       if (!slide || slide.elements?.length) return;
       const tpl = getTemplate(slide.template);
-      if (!tpl?.expand) return;
-      const elements = tpl.expand(slide.fields, { resolveImage: (r) => r });
+      if (!tpl) return;
+      // Prefer a hand-authored expand(); otherwise fall back to a generic layout
+      // so every template can be detached, not just the few with expand().
+      const elements = tpl.expand
+        ? tpl.expand(slide.fields, { resolveImage: (r) => r })
+        : expandGeneric(tpl, slide.fields, slide.background);
       withDeck((d) => mapSlides(d, slideId, (sl) => ({ ...sl, elements })));
       set({ selectedElementIds: [] });
     },

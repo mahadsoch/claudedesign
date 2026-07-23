@@ -5,6 +5,7 @@ import type { Slide } from "@/lib/model/deck";
 import { useDeck } from "@/lib/state/deckStore";
 import { PALETTE, TYPE_SCALE } from "@/lib/canvas/brand";
 import { storeUpload } from "@/lib/persistence/imageStore";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 export function ElementToolbar({ slide }: { slide: Slide }) {
   const selectedIds = useDeck((s) => s.selectedElementIds);
@@ -16,6 +17,17 @@ export function ElementToolbar({ slide }: { slide: Slide }) {
   const reattach = useDeck((s) => s.reattachSlide);
   const bump = useDeck((s) => s.bumpImages);
   const fileRef = useRef<HTMLInputElement>(null);
+  const confirm = useConfirm();
+
+  async function onReset() {
+    const ok = await confirm({
+      title: "Reset to template?",
+      body: "This discards all freeform edits on this slide and restores the structured template fields. You can undo it.",
+      confirmLabel: "Reset to template",
+      danger: true,
+    });
+    if (ok) reattach(slide.id);
+  }
 
   const one = selectedIds.length === 1 ? selectedIds[0] : null;
   const el = one ? slide.elements?.find((e) => e.id === one) : null;
@@ -105,7 +117,7 @@ export function ElementToolbar({ slide }: { slide: Slide }) {
       )}
 
       <div style={{ flex: 1 }} />
-      <button className="ct-btn" onClick={() => reattach(slide.id)} title="Discard freeform edits and return to the template">
+      <button className="ct-btn" onClick={onReset} title="Discard freeform edits and return to the template">
         ↩ Reset to template
       </button>
     </div>
