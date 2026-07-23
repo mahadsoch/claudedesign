@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { STAGE_W, STAGE_H, type Background } from "@/lib/model/deck";
+import { isIconRef, iconNameOf, renderIcon } from "@/lib/icons/iconSet";
 
 // ── Stage: the fixed 1920×1080 slide surface ────────────────────────────────
 const BG_STYLE: Record<Background, CSSProperties> = {
@@ -162,18 +163,24 @@ export function ImageBox({
   );
 }
 
-// ── IconChip: a small coral-tinted rounded square holding an icon image ───────
-// Mirrors the peach icon chips in the proposal decks. Falls back to a coral dot
-// when no icon image is set, so a fresh slide still looks intentional.
+// ── IconChip: a small coral-tinted rounded square holding an icon ─────────────
+// Mirrors the peach icon chips in the proposal decks. `value` is the raw field
+// string: either a bundled icon ref ("icon:<name>", drawn as an inline SVG) or
+// an uploaded image ref (resolved to a src via `resolve`). Falls back to a coral
+// dot when nothing is set, so a fresh slide still looks intentional.
 export function IconChip({
-  src,
+  value,
+  resolve,
   size = 72,
   radius = 16,
 }: {
-  src?: string;
+  value?: string;
+  resolve?: (ref: string | undefined) => string | undefined;
   size?: number;
   radius?: number;
 }) {
+  const iconName = iconNameOf(value);
+  const src = !isIconRef(value) && resolve ? resolve(value) : undefined;
   return (
     <div
       style={{
@@ -182,13 +189,16 @@ export function IconChip({
         flex: `0 0 ${size}px`,
         borderRadius: radius,
         background: "var(--coral-chip)",
+        color: "var(--coral)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
       }}
     >
-      {src ? (
+      {iconName ? (
+        renderIcon(iconName, Math.round(size * 0.5))
+      ) : src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" style={{ width: "58%", height: "58%", objectFit: "contain" }} />
       ) : (

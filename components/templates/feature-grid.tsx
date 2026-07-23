@@ -22,7 +22,7 @@ export const featureGrid: TemplateDef = {
       itemLabel: "Card",
       maxItems: 6,
       itemFields: [
-        { key: "icon", type: "image", label: "Icon" },
+        { key: "icon", type: "image", label: "Icon", picker: "icon" },
         { key: "title", type: "text", label: "Title", maxLength: 40 },
         { key: "body", type: "textarea", label: "Body", maxLength: 160 },
       ],
@@ -33,11 +33,11 @@ export const featureGrid: TemplateDef = {
     title: "What the Build covers",
     intro: "All on your existing stack. n8n, Claude API, Gmail — no external egress.",
     cards: [
-      { icon: "", title: "Architecture redesign", body: "Clear node responsibilities, structured prompts, deterministic data passing, explicit errors." },
-      { icon: "", title: "Production rebuild", body: "The hardened version built on your instance. The old proof of concept kept as backup." },
-      { icon: "", title: "Error handling & monitoring", body: "Explicit handling for common failures, retry logic, and a simple log so you see what failed." },
-      { icon: "", title: "Edge-case testing", body: "Run against a real batch: multiple currencies, odd vendors, malformed and multi-page inputs." },
-      { icon: "", title: "Handover & runbook", body: "How the flow runs, where prompts live, how to debug, swap models, and extend it." },
+      { icon: "icon:workflow", title: "Architecture redesign", body: "Clear node responsibilities, structured prompts, deterministic data passing, explicit errors." },
+      { icon: "icon:rocket", title: "Production rebuild", body: "The hardened version built on your instance. The old proof of concept kept as backup." },
+      { icon: "icon:shield", title: "Error handling & monitoring", body: "Explicit handling for common failures, retry logic, and a simple log so you see what failed." },
+      { icon: "icon:test", title: "Edge-case testing", body: "Run against a real batch: multiple currencies, odd vendors, malformed and multi-page inputs." },
+      { icon: "icon:book", title: "Handover & runbook", body: "How the flow runs, where prompts live, how to debug, swap models, and extend it." },
     ],
   }),
   render: (f, ctx) => {
@@ -65,7 +65,7 @@ export const featureGrid: TemplateDef = {
                 gap: 18,
               }}
             >
-              <IconChip src={ctx.resolveImage(str(c.icon))} size={60} radius={14} />
+              <IconChip value={str(c.icon)} resolve={ctx.resolveImage} size={60} radius={14} />
               <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 27, letterSpacing: -0.5 }}>{c.title}</div>
               <p style={{ fontSize: 22, lineHeight: 1.5, color: "var(--body-light)", margin: 0 }}>{c.body}</p>
             </div>

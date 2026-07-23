@@ -11,7 +11,10 @@ import { getTemplate } from "@/components/templates/registry";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
+// Planning / template-selection uses the stronger model for structural
+// reasoning; the actual slide copy is written by Sonnet.
 const MODEL = "claude-opus-4-8";
+const CONTENT_MODEL = "claude-sonnet-5";
 
 type Provider = "api" | "claude-code";
 
@@ -49,14 +52,15 @@ async function callModel(
   provider: Provider,
   system: string,
   user: string,
-  maxTokens: number
+  maxTokens: number,
+  model: string = MODEL
 ): Promise<string> {
   if (provider === "claude-code") {
-    return runClaudeCode(system, user, { model: MODEL });
+    return runClaudeCode(system, user, { model });
   }
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const message = await client.messages.create({
-    model: MODEL,
+    model,
     max_tokens: maxTokens,
     system,
     messages: [{ role: "user", content: user }],
@@ -118,7 +122,7 @@ ${readDesignContract()}
 ${slideSpecs}`;
 
   const raw = extractJson(
-    await callModel(provider, system, `Fill in the deck content, staying true to this brief:\n\n${brief}`, 16000)
+    await callModel(provider, system, `Fill in the deck content, staying true to this brief:\n\n${brief}`, 16000, CONTENT_MODEL)
   ) as { slides?: { fields?: unknown }[] };
   const filled = Array.isArray(raw.slides) ? raw.slides : [];
 
@@ -145,7 +149,7 @@ ${templateCatalog()}
 
 Return ONLY a JSON object: { "meta": { "title": string }, "slides": [ { "template": string, "fields": object } ] }. No prose, no fences.`;
   const raw = extractJson(
-    await callModel(provider, system, `Create a ${count}-slide deck for this brief:\n\n${brief}`, 16000)
+    await callModel(provider, system, `Create a ${count}-slide deck for this brief:\n\n${brief}`, 16000, CONTENT_MODEL)
   );
   return validateDeck(raw, "AI draft");
 }

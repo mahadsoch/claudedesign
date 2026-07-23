@@ -38,6 +38,9 @@ export function executiveReviewDeck(): Deck {
       slideFrom("featured-bio"),
       slideFrom("team-grid"),
       slideFrom("step-timeline"),
+      // Close on the dark contact/CTA slide (shows the Soch logo + a call to
+      // action), giving the cream body a dark anchor at both ends per DESIGN.md.
+      slideFrom("contact-cta"),
     ],
   };
 }
@@ -55,8 +58,8 @@ export const DECK_TEMPLATES: DeckTemplate[] = [
   {
     id: "executive-review",
     name: "Executive Review",
-    description: "The full proposal narrative: context, problem, approach, impact, investment, team and next steps.",
-    slideCount: 12,
+    description: "The full proposal narrative: context, problem, approach, impact, investment, team, next steps and a closing call to action.",
+    slideCount: 13,
     build: executiveReviewDeck,
   },
 ];

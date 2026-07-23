@@ -33,7 +33,7 @@ export const roadmapPhases: TemplateDef = {
     kicker: "04 · THE IMPACT",
     title: "The wider roadmap",
     phases: [
-      { name: "Discovery", desc: "Invoice approval automation. The pilot, this proposal.", price: "€1,500", flag: "YOU ARE HERE" },
+      { name: "Discovery", desc: "Invoice approval automation. The pilot, this proposal.", price: "€6,000", flag: "YOU ARE HERE" },
       { name: "Phase 1", desc: "The next 2–3 procurement automations from your roadmap.", price: "€3,000–€8,000 each", flag: "" },
       { name: "Phase 2", desc: "Source-to-pay, CLM and ERP integration across the workflows.", price: "Scoped per build", flag: "" },
       { name: "Phase 3+", desc: "Once procurement is proven, extend into finance, legal and ops.", price: "Discussed at Phase 2", flag: "" },

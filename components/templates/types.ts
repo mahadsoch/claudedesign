@@ -17,6 +17,12 @@ export interface FieldDef {
   placeholder?: string;
   /** Small helper text shown under the input. */
   hint?: string;
+  /**
+   * For `image` fields: which picker the Inspector shows. "icon" adds a grid of
+   * the bundled icon set (values stored as "icon:<name>") alongside upload;
+   * omitted means a plain image uploader.
+   */
+  picker?: "icon";
   // list-only:
   itemFields?: FieldDef[];
   itemLabel?: string; // singular, e.g. "Item", "Stat"

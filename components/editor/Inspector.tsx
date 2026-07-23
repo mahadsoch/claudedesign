@@ -5,6 +5,7 @@ import { useDeck } from "@/lib/state/deckStore";
 import { getTemplate } from "@/components/templates/registry";
 import type { FieldDef } from "@/components/templates/types";
 import { storeUpload, resolveImageSync } from "@/lib/persistence/imageStore";
+import { ICON_PREFIX, iconNames, renderIcon } from "@/lib/icons/iconSet";
 
 export function Inspector() {
   const deck = useDeck((s) => s.deck);
@@ -93,23 +94,53 @@ function Field({ slideId, def }: { slideId: string; def: FieldDef }) {
   );
 }
 
-function ImageField({ slideId, def }: { slideId: string; def: FieldDef }) {
-  const value = useDeck((s) => s.deck.slides.find((sl) => sl.id === slideId)?.fields[def.key]);
-  const setField = useDeck((s) => s.setField);
+// Shared image control: a click/drop upload zone, a remove button, and — for
+// icon fields (picker === "icon") — a grid of the bundled icon set. Used for
+// both top-level image fields and image sub-fields inside a list.
+function ImagePicker({
+  value,
+  picker,
+  onChange,
+}: {
+  value: string;
+  picker?: FieldDef["picker"];
+  onChange: (ref: string) => void;
+}) {
   const bump = useDeck((s) => s.bumpImages);
   const inputRef = useRef<HTMLInputElement>(null);
-  const ref = typeof value === "string" ? value : "";
-  const src = resolveImageSync(ref);
+  const isIcon = value.startsWith(ICON_PREFIX);
+  const iconName = isIcon ? value.slice(ICON_PREFIX.length) : "";
+  const src = !isIcon ? resolveImageSync(value) : undefined;
+
+  const upload = async (file: File | undefined) => {
+    if (!file) return;
+    const stored = await storeUpload(file);
+    onChange(stored);
+    bump();
+  };
 
   return (
-    <div className="field">
-      <label>{def.label}</label>
-      <div className="img-drop" onClick={() => inputRef.current?.click()}>
-        {src ? <img src={src} alt="" /> : <span>Click to upload</span>}
+    <>
+      <div
+        className="img-drop"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          void upload(e.dataTransfer.files?.[0]);
+        }}
+      >
+        {iconName ? (
+          <span className="icon-preview">{renderIcon(iconName, 34)}</span>
+        ) : src ? (
+          <img src={src} alt="" />
+        ) : (
+          <span>Click or drop to upload</span>
+        )}
       </div>
-      {ref && (
-        <button className="icon-btn" style={{ marginTop: 4 }} onClick={() => setField(slideId, def.key, "")}>
-          Remove image
+      {value && (
+        <button className="icon-btn" style={{ marginTop: 4 }} onClick={() => onChange("")}>
+          Remove
         </button>
       )}
       <input
@@ -117,14 +148,37 @@ function ImageField({ slideId, def }: { slideId: string; def: FieldDef }) {
         type="file"
         accept="image/*"
         hidden
-        onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          const stored = await storeUpload(file);
-          setField(slideId, def.key, stored);
-          bump();
-        }}
+        onChange={(e) => void upload(e.target.files?.[0])}
       />
+      {picker === "icon" && (
+        <div className="icon-grid">
+          {iconNames.map((name) => (
+            <button
+              key={name}
+              type="button"
+              title={name}
+              className={"icon-swatch" + (iconName === name ? " is-active" : "")}
+              onClick={() => onChange(ICON_PREFIX + name)}
+            >
+              {renderIcon(name, 22)}
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function ImageField({ slideId, def }: { slideId: string; def: FieldDef }) {
+  const value = useDeck((s) => s.deck.slides.find((sl) => sl.id === slideId)?.fields[def.key]);
+  const setField = useDeck((s) => s.setField);
+  const ref = typeof value === "string" ? value : "";
+
+  return (
+    <div className="field">
+      <label>{def.label}</label>
+      <ImagePicker value={ref} picker={def.picker} onChange={(v) => setField(slideId, def.key, v)} />
+      {def.hint && <div className="hint">{def.hint}</div>}
     </div>
   );
 }
@@ -154,7 +208,13 @@ function ListField({ slideId, def }: { slideId: string; def: FieldDef }) {
           {def.itemFields?.map((sub) => (
             <div key={sub.key} className="field" style={{ marginBottom: 8 }}>
               <label style={{ fontSize: 10, color: "#7a7a7a" }}>{sub.label}</label>
-              {sub.type === "textarea" ? (
+              {sub.type === "image" ? (
+                <ImagePicker
+                  value={item[sub.key] ?? ""}
+                  picker={sub.picker}
+                  onChange={(v) => setItem(slideId, def.key, i, sub.key, v)}
+                />
+              ) : sub.type === "textarea" ? (
                 <textarea
                   rows={2}
                   value={item[sub.key] ?? ""}

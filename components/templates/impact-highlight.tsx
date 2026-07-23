@@ -20,7 +20,7 @@ export const impactHighlight: TemplateDef = {
       itemLabel: "Outcome",
       maxItems: 4,
       itemFields: [
-        { key: "icon", type: "image", label: "Icon" },
+        { key: "icon", type: "image", label: "Icon", picker: "icon" },
         { key: "head", type: "text", label: "Heading", maxLength: 44 },
         { key: "desc", type: "textarea", label: "Description", maxLength: 120 },
       ],
@@ -34,10 +34,10 @@ export const impactHighlight: TemplateDef = {
     kicker: "04 · THE IMPACT",
     title: "What changes after the pilot",
     items: [
-      { icon: "", head: "Production-grade, owned by you", desc: "Runs on your stack with explicit error paths, monitored and tested." },
-      { icon: "", head: "Predictable failure rate", desc: "Edge cases are handled and known, so the team can trust what it sees." },
-      { icon: "", head: "A runbook your team can maintain", desc: "Documentation owned by your people, so maintenance can move in-house." },
-      { icon: "", head: "A foundation ready to extend", desc: "The next automations on the roadmap build on solid ground." },
+      { icon: "icon:shield", head: "Production-grade, owned by you", desc: "Runs on your stack with explicit error paths, monitored and tested." },
+      { icon: "icon:chart", head: "Predictable failure rate", desc: "Edge cases are handled and known, so the team can trust what it sees." },
+      { icon: "icon:book", head: "A runbook your team can maintain", desc: "Documentation owned by your people, so maintenance can move in-house." },
+      { icon: "icon:layers", head: "A foundation ready to extend", desc: "The next automations on the roadmap build on solid ground." },
     ],
     panelKicker: "THE METRIC TO CHASE",
     panelTitle: "Efficiency and optimisation",
@@ -53,7 +53,7 @@ export const impactHighlight: TemplateDef = {
           <div style={{ flex: 1.15, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             {items.map((it, i) => (
               <div key={i} style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-                <IconChip src={ctx.resolveImage(str(it.icon))} size={56} radius={12} />
+                <IconChip value={str(it.icon)} resolve={ctx.resolveImage} size={56} radius={12} />
                 <div>
                   <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 27, letterSpacing: -0.5 }}>{it.head}</div>
                   <p style={{ fontSize: 22, lineHeight: 1.5, color: "var(--body-light)", margin: "8px 0 0" }}>{it.desc}</p>
@@ -63,7 +63,7 @@ export const impactHighlight: TemplateDef = {
           </div>
 
           <div style={{ flex: "0 0 540px", background: "var(--coral-wash)", borderRadius: 24, padding: "52px 54px", display: "flex", flexDirection: "column" }}>
-            <IconChip size={56} radius={12} />
+            <IconChip value="icon:target" size={56} radius={12} />
             <div style={{ marginTop: 30 }}>
               <Kicker>{str(f.panelKicker)}</Kicker>
             </div>
