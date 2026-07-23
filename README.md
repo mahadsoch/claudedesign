@@ -28,9 +28,10 @@ no accounts, no cloud. Decks are saved in your browser (IndexedDB).
   full set of on-brand slides that you then tweak by hand. Template choice is
   content-driven: Claude first plans each slide's intent + content type, the
   server maps that to the best-fit template (content-type taxonomy + keyword
-  ranker + variety rules), then a second pass fills the fields. Authenticate
-  with an `ANTHROPIC_API_KEY` **or** your Claude Code subscription login (see
-  Setup).
+  ranker + variety rules), then a second pass fills the fields. Planning uses
+  Opus for structural reasoning; the slide copy itself is written by Sonnet.
+  Authenticate with an `ANTHROPIC_API_KEY` **or** your Claude Code subscription
+  login (see Setup).
 - **Freeform canvas** — "detach" any slide to move, resize, restyle, or add
   text/shape/image elements beyond the template's fixed fields, with layering,
   duplication, and a one-click "reset to template" to discard the overrides.

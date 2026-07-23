@@ -231,6 +231,40 @@ body {
   height: 100%;
   object-fit: cover;
 }
+.img-drop .icon-preview {
+  color: var(--coral, #ea6a47);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Bundled-icon picker grid (shown for icon fields) */
+.icon-grid {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.icon-swatch {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cfcfcf;
+  background: #1c1c1c;
+  border: 1px solid #333;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+.icon-swatch:hover {
+  color: var(--coral, #ea6a47);
+  border-color: #4a4a4a;
+}
+.icon-swatch.is-active {
+  color: var(--coral, #ea6a47);
+  border-color: var(--coral, #ea6a47);
+  background: #241a17;
+}
 
 /* Modal */
 .modal-backdrop {

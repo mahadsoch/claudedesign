@@ -20,7 +20,7 @@ export const threeColumns: TemplateDef = {
       itemLabel: "Column",
       maxItems: 3,
       itemFields: [
-        { key: "icon", type: "image", label: "Icon" },
+        { key: "icon", type: "image", label: "Icon", picker: "icon" },
         { key: "head", type: "text", label: "Heading", maxLength: 40 },
         { key: "body", type: "textarea", label: "Body", maxLength: 200 },
       ],
@@ -30,9 +30,9 @@ export const threeColumns: TemplateDef = {
     kicker: "02 · THE PROBLEM",
     title: "A working prototype is not yet a foundation",
     columns: [
-      { icon: "", head: "Built reactively", body: "The current flow was assembled as a basic MVP. Edge cases and failure paths were not designed in." },
-      { icon: "", head: "No engineering depth yet", body: "It was built solo, through trial and error. There is no specialist automation engineering behind it." },
-      { icon: "", head: "Fragile under the roadmap", body: "Fifteen workflows are meant to sit on top of this. Today its failures are silent." },
+      { icon: "icon:bolt", head: "Built reactively", body: "The current flow was assembled as a basic MVP. Edge cases and failure paths were not designed in." },
+      { icon: "icon:gear", head: "No engineering depth yet", body: "It was built solo, through trial and error. There is no specialist automation engineering behind it." },
+      { icon: "icon:warning", head: "Fragile under the roadmap", body: "Fifteen workflows are meant to sit on top of this. Today its failures are silent." },
     ],
   }),
   render: (f, ctx) => {
@@ -53,7 +53,7 @@ export const threeColumns: TemplateDef = {
                 gap: 26,
               }}
             >
-              <IconChip src={ctx.resolveImage(str(c.icon))} />
+              <IconChip value={str(c.icon)} resolve={ctx.resolveImage} />
               <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 34, letterSpacing: -0.5, lineHeight: 1.15 }}>
                 {c.head}
               </div>

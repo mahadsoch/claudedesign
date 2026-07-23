@@ -1,9 +1,9 @@
 import type { TemplateDef } from "./types";
 import { str } from "./types";
-import { Stage, ImageBox, parseAccents } from "./_shared/primitives";
+import { Stage, ImageBox, Logo, parseAccents } from "./_shared/primitives";
 
 // Cover with a dark inset card floating on cream — the "Executive Review"
-// opener from the proposal decks: wordmark, big title, a "prepared for" line,
+// opener from the proposal decks: Soch logo, big title, a "prepared for" line,
 // an author pill, and an optional portrait on the right.
 export const coverCard: TemplateDef = {
   id: "cover-card",
@@ -12,14 +12,12 @@ export const coverCard: TemplateDef = {
   tags: ["cover", "title", "opening", "proposal", "intro"],
   background: "cream",
   fields: [
-    { key: "wordmark", type: "text", label: "Wordmark", maxLength: 20, placeholder: "Soch" },
     { key: "title", type: "textarea", label: "Title", maxLength: 80, hint: "Wrap accent in [[…]]" },
     { key: "preparedFor", type: "text", label: "Prepared-for line", maxLength: 60 },
     { key: "author", type: "text", label: "Author line", maxLength: 40 },
     { key: "image", type: "image", label: "Portrait / cover image" },
   ],
   defaults: () => ({
-    wordmark: "Soch",
     title: "Leadtech [[Procurement Automation]]",
     preparedFor: "Proposal Prepared for: Raphael Braga",
     author: "By: Rizwan Mahmood",
@@ -43,9 +41,7 @@ export const coverCard: TemplateDef = {
             overflow: "hidden",
           }}
         >
-          <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 34, letterSpacing: -1 }}>
-            {str(f.wordmark)}
-          </div>
+          <Logo height={44} />
 
           <div style={{ marginTop: "auto", maxWidth: img ? 1150 : "100%" }}>
             <div style={{ height: 1, background: "rgba(252,245,235,0.18)", marginBottom: 54 }} />

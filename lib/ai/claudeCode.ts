@@ -23,7 +23,7 @@ export class ClaudeCodeNotInstalledError extends Error {
 export function runClaudeCode(
   system: string,
   user: string,
-  { model = "opus", timeoutMs = 115_000 }: { model?: string; timeoutMs?: number } = {}
+  { model = "sonnet", timeoutMs = 115_000 }: { model?: string; timeoutMs?: number } = {}
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     // Force subscription/OAuth auth: remove any API key from the child env.
