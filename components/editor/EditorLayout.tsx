@@ -16,6 +16,8 @@ import { GenerateModal } from "./GenerateModal";
 import { TemplateGallery } from "./TemplateGallery";
 import { SaveStatusPill } from "./SaveStatusPill";
 import { Onboarding } from "./Onboarding";
+import { DeckLibrary } from "./DeckLibrary";
+import { PresentationOverlay } from "@/components/present/PresentationOverlay";
 
 export function EditorLayout() {
   const deck = useDeck((s) => s.deck);
@@ -31,10 +33,12 @@ export function EditorLayout() {
   const redo = useDeck((s) => s.redo);
   const canUndo = useDeck((s) => s.past.length > 0);
   const canRedo = useDeck((s) => s.future.length > 0);
+  const startPresenting = useUI((s) => s.startPresenting);
 
   const [pdfBusy, setPdfBusy] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const confirm = useConfirm();
@@ -131,6 +135,9 @@ export function EditorLayout() {
             width: 260,
           }}
         />
+        <button className="btn" title="Your decks" onClick={() => setShowLibrary(true)}>
+          ☰ Decks
+        </button>
         <button className="btn" title="Undo (⌘Z)" onClick={undo} disabled={!canUndo} style={{ padding: "9px 11px" }}>
           ↺
         </button>
@@ -139,6 +146,16 @@ export function EditorLayout() {
         </button>
         <SaveStatusPill />
         <div className="spacer" />
+        <button
+          className="btn"
+          onClick={() => {
+            const i = deck.slides.findIndex((s) => s.id === current?.id);
+            startPresenting(i < 0 ? 0 : i);
+          }}
+          title="Present full-screen (←/→ to navigate, Esc to exit)"
+        >
+          ▶ Present
+        </button>
         <button className="btn" onClick={() => setShowTemplates(true)}>
           ▦ Templates
         </button>
@@ -210,6 +227,10 @@ export function EditorLayout() {
         onGenerate={() => setShowGenerate(true)}
         onBrowseTemplates={() => setShowTemplates(true)}
       />
+
+      {showLibrary && <DeckLibrary ctx={ctx} onClose={() => setShowLibrary(false)} />}
+
+      <PresentationOverlay ctx={ctx} />
     </div>
   );
 }

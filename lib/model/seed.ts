@@ -21,6 +21,7 @@ function slideFrom(templateId: string, overrides: Record<string, FieldValue> = {
 export function seedDeck(): Deck {
   const now = new Date().toISOString();
   return {
+    id: uid("deck"),
     schemaVersion: 1,
     brandId: "soch",
     meta: { title: "AI-Native Teams (starter)", createdAt: now, updatedAt: now },

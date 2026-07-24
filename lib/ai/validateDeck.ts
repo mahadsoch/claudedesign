@@ -50,11 +50,12 @@ interface RawSlide {
   background?: string;
   fields?: unknown;
   elements?: unknown;
+  notes?: unknown;
 }
 
 export function validateDeck(raw: unknown, title = "Generated deck"): Deck {
   const now = new Date().toISOString();
-  const r = (raw ?? {}) as { meta?: { title?: string }; slides?: RawSlide[] };
+  const r = (raw ?? {}) as { id?: string; meta?: { title?: string }; slides?: RawSlide[] };
   const rawSlides = Array.isArray(r.slides) ? r.slides : [];
 
   const slides: Slide[] = rawSlides
@@ -75,6 +76,7 @@ export function validateDeck(raw: unknown, title = "Generated deck"): Deck {
       };
       // Preserve freeform elements if a valid array was supplied (import path).
       if (Array.isArray(s.elements)) slide.elements = s.elements as Slide["elements"];
+      if (typeof s.notes === "string") slide.notes = s.notes;
       return slide;
     });
 
@@ -83,6 +85,7 @@ export function validateDeck(raw: unknown, title = "Generated deck"): Deck {
   }
 
   return {
+    id: typeof r.id === "string" && r.id ? r.id : uid("deck"),
     schemaVersion: 1,
     brandId: "soch",
     meta: { title: r.meta?.title || title, createdAt: now, updatedAt: now },

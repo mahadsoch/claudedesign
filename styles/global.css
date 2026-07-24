@@ -395,6 +395,50 @@ body {
   }
 }
 
+/* Presentation mode */
+.present-root {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+}
+.present-stage-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+}
+.present-notes {
+  width: min(1100px, 92vw);
+  max-height: 150px;
+  overflow-y: auto;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 14px 18px;
+  color: #d4d4d4;
+  font: 400 16px/1.5 var(--font-body);
+  white-space: pre-wrap;
+}
+.present-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  background: #0d0d0d;
+  border-top: 1px solid #222;
+}
+.present-root:hover .present-bar {
+  opacity: 1;
+}
+
 /* Freeform canvas toolbar */
 .canvas-toolbar {
   position: absolute;

@@ -74,8 +74,15 @@ async function callModel(
 async function planDeck(
   provider: Provider,
   brief: string,
-  count: number
+  count: number,
+  append = false
 ): Promise<{ title: string; beats: PlanBeat[] }> {
+  // Append mode extends an existing deck, so it produces only body/content beats
+  // — no cover or closing, which the deck already has.
+  const spine = append
+    ? `Rules: these slides EXTEND an existing deck, so do NOT include a cover, agenda, or closing/next-steps slide — produce only substantive body beats about the brief. Pick the most SPECIFIC content type for each beat and vary them.`
+    : `Rules: open with a "cover" slide and close with "nextsteps" or "closing". Pick the most SPECIFIC content type for each beat (e.g. pricing, roadmap, team, results, comparison) rather than defaulting to generic lists. Vary the content types. For a proposal / executive-review brief a strong spine is: cover → agenda → context → problem → approach → features → impact → roadmap → pricing → team → nextsteps, adapted to the brief.`;
+
   const system = `You plan on-brand slide decks for the brand "Soch". You do NOT write slide content yet — you decide, for each slide, what it is ABOUT and which KIND of slide it is.
 
 Return ONLY JSON: { "meta": { "title": string }, "slides": [ { "intent": string, "contentType": string } ] } with exactly ${count} slides.
@@ -85,7 +92,7 @@ Return ONLY JSON: { "meta": { "title": string }, "slides": [ { "intent": string,
 CONTENT TYPES:
 ${contentTypeMenu()}
 
-Rules: open with a "cover" slide and close with "nextsteps" or "closing". Pick the most SPECIFIC content type for each beat (e.g. pricing, roadmap, team, results, comparison) rather than defaulting to generic lists. Vary the content types. For a proposal / executive-review brief a strong spine is: cover → agenda → context → problem → approach → features → impact → roadmap → pricing → team → nextsteps, adapted to the brief.
+${spine}
 
 No prose, no markdown fences.`;
 
@@ -154,6 +161,36 @@ Return ONLY a JSON object: { "meta": { "title": string }, "slides": [ { "templat
   return validateDeck(raw, "AI draft");
 }
 
+// ── Per-slide rewrite: fill ONE fixed template's fields per an instruction ────
+async function regenerateSlideFields(
+  provider: Provider,
+  template: string,
+  instruction: string,
+  deckTitle: string,
+  currentFields: unknown
+): Promise<Record<string, unknown>> {
+  const system = `You rewrite the content of a SINGLE on-brand slide for the brand "Soch". The template is fixed: "${template}". Fill its fields to match the schema exactly (exact field keys, respect item caps and lengths). Titles may contain ONE coral accent using [[double brackets]]. Soch voice: practical, direct, confident, short declarative sentences, no hype.
+
+Return ONLY JSON: { "fields": { ... } }. No "template" key, no prose, no markdown fences.
+
+=== BRAND CONTRACT (DESIGN.md) ===
+${readDesignContract()}
+
+=== TEMPLATE SCHEMA ===
+${templateSpec(template)}
+
+=== CURRENT CONTENT (revise this) ===
+${JSON.stringify(currentFields ?? {})}`;
+
+  const user = `Deck title: ${deckTitle}\n\nRewrite this slide following this instruction:\n${instruction}`;
+  const raw = extractJson(await callModel(provider, system, user, 4000, CONTENT_MODEL)) as {
+    fields?: Record<string, unknown>;
+  };
+  // Coerce through validateDeck (one-slide deck) so the fields are schema-safe.
+  const deck = validateDeck({ meta: { title: deckTitle }, slides: [{ template, fields: raw.fields ?? {} }] });
+  return deck.slides[0].fields as Record<string, unknown>;
+}
+
 export async function POST(req: Request) {
   const provider = resolveProvider();
   if (provider === "api" && !process.env.ANTHROPIC_API_KEY) {
@@ -166,30 +203,77 @@ export async function POST(req: Request) {
     );
   }
 
-  let brief: string;
-  let slideCount: number | undefined;
+  let body: {
+    action?: string;
+    brief?: string;
+    slideCount?: number;
+    append?: boolean;
+    title?: string;
+    beats?: PlanBeat[];
+    templateIds?: string[];
+    template?: string;
+    instruction?: string;
+    deckTitle?: string;
+    currentFields?: unknown;
+  };
   try {
-    ({ brief, slideCount } = await req.json());
+    body = await req.json();
   } catch {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
-  if (!brief || typeof brief !== "string") {
-    return NextResponse.json({ error: "A 'brief' string is required." }, { status: 400 });
-  }
 
-  const count = Math.min(Math.max(Number(slideCount) || 8, 3), 20);
+  const action = body.action ?? "full";
+  const count = Math.min(Math.max(Number(body.slideCount) || 8, 3), 20);
 
   try {
-    // Content-driven flow: plan → choose templates server-side → fill. Fall back
-    // to single-pass generation if the planning phase can't produce an outline.
-    try {
-      const { title, beats } = await planDeck(provider, brief, count);
+    // ── Per-slide rewrite ──────────────────────────────────────────────────
+    if (action === "slide") {
+      if (!body.template || !getTemplate(body.template)) {
+        return NextResponse.json({ error: "A valid 'template' is required." }, { status: 400 });
+      }
+      if (!body.instruction || typeof body.instruction !== "string") {
+        return NextResponse.json({ error: "An 'instruction' is required." }, { status: 400 });
+      }
+      const fields = await regenerateSlideFields(
+        provider,
+        body.template,
+        body.instruction,
+        body.deckTitle || "Deck",
+        body.currentFields
+      );
+      return NextResponse.json({ fields });
+    }
+
+    // ── Phase 1 only: return the plan + chosen templates (for staged UI) ─────
+    if (action === "plan") {
+      if (!body.brief) return NextResponse.json({ error: "A 'brief' string is required." }, { status: 400 });
+      const { title, beats } = await planDeck(provider, body.brief, count, !!body.append);
       const templateIds = chooseTemplates(beats).filter((id) => getTemplate(id));
-      const deck = await fillDeck(provider, brief, title, beats, templateIds);
+      return NextResponse.json({ title, beats, templateIds });
+    }
+
+    // ── Phase 2 only: fill fields for a plan the client already has ──────────
+    if (action === "fill") {
+      if (!body.brief || !Array.isArray(body.beats) || !Array.isArray(body.templateIds)) {
+        return NextResponse.json({ error: "'brief', 'beats' and 'templateIds' are required." }, { status: 400 });
+      }
+      const ids = body.templateIds.filter((id) => getTemplate(id));
+      const deck = await fillDeck(provider, body.brief, body.title || "AI draft", body.beats, ids);
+      return NextResponse.json({ deck });
+    }
+
+    // ── Full one-shot (fallback for clients that don't stage) ────────────────
+    if (!body.brief || typeof body.brief !== "string") {
+      return NextResponse.json({ error: "A 'brief' string is required." }, { status: 400 });
+    }
+    try {
+      const { title, beats } = await planDeck(provider, body.brief, count, !!body.append);
+      const templateIds = chooseTemplates(beats).filter((id) => getTemplate(id));
+      const deck = await fillDeck(provider, body.brief, title, beats, templateIds);
       return NextResponse.json({ deck });
     } catch (planErr) {
       if (planErr instanceof ClaudeCodeNotInstalledError) throw planErr;
-      const deck = await singlePass(provider, brief, count);
+      const deck = await singlePass(provider, body.brief, count);
       return NextResponse.json({ deck });
     }
   } catch (e) {

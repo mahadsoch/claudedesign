@@ -7,6 +7,10 @@ import type { FieldDef } from "@/components/templates/types";
 import type { Background } from "@/lib/model/deck";
 import { storeUpload, resolveImageSync } from "@/lib/persistence/imageStore";
 import { ICON_PREFIX, iconNames, renderIcon } from "@/lib/icons/iconSet";
+import { exportSlidePng } from "@/lib/pdf/exportPng";
+import { useToast } from "@/components/ui/Toast";
+import { useState } from "react";
+import { RewriteSlideModal } from "./RewriteSlideModal";
 
 export function Inspector() {
   const deck = useDeck((s) => s.deck);
@@ -17,11 +21,26 @@ export function Inspector() {
   const move = useDeck((s) => s.moveSlide);
   const detach = useDeck((s) => s.detachSlide);
   const setBackground = useDeck((s) => s.setSlideBackground);
+  const toast = useToast();
+  const [pngBusy, setPngBusy] = useState(false);
+  const [showRewrite, setShowRewrite] = useState(false);
 
   if (!slide) return <div className="inspector" />;
   const tpl = getTemplate(slide.template);
   const idx = deck.slides.findIndex((s) => s.id === slide.id);
   const detached = !!(slide.elements && slide.elements.length > 0);
+
+  async function exportPng() {
+    setPngBusy(true);
+    try {
+      await exportSlidePng(deck, idx);
+      toast.success("Slide PNG downloaded.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPngBusy(false);
+    }
+  }
 
   return (
     <div className="inspector">
@@ -60,6 +79,16 @@ export function Inspector() {
         </div>
       </div>
 
+      <button
+        className="btn"
+        style={{ width: "100%", marginBottom: 16 }}
+        disabled={pngBusy}
+        onClick={exportPng}
+        title="Download this single slide as a 3840×2160 PNG"
+      >
+        {pngBusy ? "Rendering PNG…" : "⬇ Export slide as PNG"}
+      </button>
+
       {detached ? (
         <div style={{ font: "400 13px/1.6 var(--font-body)", color: "#9a9a9a" }}>
           This slide is on the <b style={{ color: "#ddd" }}>freeform canvas</b>. Edit elements
@@ -71,6 +100,16 @@ export function Inspector() {
         </div>
       ) : (
         <>
+          {tpl && (
+            <button
+              className="btn"
+              style={{ width: "100%", marginBottom: 10 }}
+              onClick={() => setShowRewrite(true)}
+              title="Rewrite this slide's words with AI, keeping the layout"
+            >
+              ✦ Rewrite with AI
+            </button>
+          )}
           {tpl && (
             <button
               className="btn"
@@ -90,6 +129,36 @@ export function Inspector() {
           ))}
         </>
       )}
+
+      <NotesField slideId={slide.id} />
+
+      {showRewrite && tpl && (
+        <RewriteSlideModal
+          slideId={slide.id}
+          template={slide.template}
+          currentFields={slide.fields}
+          deckTitle={deck.meta.title}
+          onClose={() => setShowRewrite(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Presenter-only speaker notes. Kept out of the slide/PDF render entirely; shown
+// in the Inspector and (optionally) in presentation mode.
+function NotesField({ slideId }: { slideId: string }) {
+  const notes = useDeck((s) => s.deck.slides.find((sl) => sl.id === slideId)?.notes ?? "");
+  const setNotes = useDeck((s) => s.setNotes);
+  return (
+    <div className="field" style={{ marginTop: 22, borderTop: "1px solid #2a2a2a", paddingTop: 16 }}>
+      <label>Speaker notes</label>
+      <textarea
+        rows={4}
+        value={notes}
+        placeholder="Notes for the presenter — never shown on the slide or in the PDF."
+        onChange={(e) => setNotes(slideId, e.target.value)}
+      />
     </div>
   );
 }
