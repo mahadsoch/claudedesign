@@ -1,7 +1,7 @@
 import type { Slide } from "@/lib/model/deck";
 import type { RenderCtx } from "./templates/types";
 import { getTemplate } from "./templates/registry";
-import { Stage } from "./templates/_shared/primitives";
+import { Stage, StageBackgroundProvider } from "./templates/_shared/primitives";
 import { FreeformSlide } from "./canvas/FreeformSlide";
 
 /**
@@ -24,11 +24,12 @@ export function SlideRenderer({ slide, ctx }: { slide: Slide; ctx: RenderCtx }) 
       </Stage>
     );
   }
-  // The template owns its Stage + background. We pass the slide's background
-  // through by cloning defaults: templates read their own `background` const,
-  // so to honour slide-level overrides we render the template then, if the
-  // slide overrides, we can't easily swap — templates hardcode their Stage bg.
-  // For Phase 1 the slide background always matches the template default
-  // (set at insert time), so this is consistent.
-  return <>{tpl.render(slide.fields, ctx)}</>;
+  // Templates hardcode their own Stage background. To honour a slide-level
+  // override we wrap the render in a provider that Stage reads; when the slide's
+  // background differs from the template default, the override wins. When they
+  // match (the common case) this is a no-op.
+  const override = slide.background !== tpl.background ? slide.background : null;
+  return (
+    <StageBackgroundProvider value={override}>{tpl.render(slide.fields, ctx)}</StageBackgroundProvider>
+  );
 }

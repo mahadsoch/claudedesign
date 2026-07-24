@@ -22,6 +22,7 @@ function slideFrom(templateId: string, overrides: Record<string, FieldValue> = {
 export function executiveReviewDeck(): Deck {
   const now = new Date().toISOString();
   return {
+    id: uid("deck"),
     schemaVersion: 1,
     brandId: "soch",
     meta: { title: "Executive Review (template)", createdAt: now, updatedAt: now },

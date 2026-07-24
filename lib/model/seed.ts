@@ -14,13 +14,14 @@ function slideFrom(templateId: string, overrides: Record<string, FieldValue> = {
 }
 
 /**
- * The default starter deck — a coherent 5-slide sequence lifted from the
- * reference deck, exercising every core template + background. New users open
- * onto this so they start from something real, not a blank page.
+ * The default starter deck — a coherent multi-slide sequence lifted from the
+ * reference deck, exercising a spread of core templates + backgrounds. New users
+ * open onto this so they start from something real, not a blank page.
  */
 export function seedDeck(): Deck {
   const now = new Date().toISOString();
   return {
+    id: uid("deck"),
     schemaVersion: 1,
     brandId: "soch",
     meta: { title: "AI-Native Teams (starter)", createdAt: now, updatedAt: now },

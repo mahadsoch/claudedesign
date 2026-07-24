@@ -50,25 +50,33 @@ interface RawSlide {
   background?: string;
   fields?: unknown;
   elements?: unknown;
+  notes?: unknown;
 }
 
 export function validateDeck(raw: unknown, title = "Generated deck"): Deck {
   const now = new Date().toISOString();
-  const r = (raw ?? {}) as { meta?: { title?: string }; slides?: RawSlide[] };
+  const r = (raw ?? {}) as { id?: string; meta?: { title?: string }; slides?: RawSlide[] };
   const rawSlides = Array.isArray(r.slides) ? r.slides : [];
 
   const slides: Slide[] = rawSlides
     .filter((s) => s.template && getTemplate(s.template))
     .map((s) => {
       const tpl = getTemplate(s.template!)!;
+      // Honour a valid slide-level background override; otherwise fall back to
+      // the template default. Keeps AI/imported per-slide backgrounds intact.
+      const bg =
+        s.background === "dark" || s.background === "cream" || s.background === "coral"
+          ? s.background
+          : tpl.background;
       const slide: Slide = {
         id: s.id || uid("sl"),
         template: s.template!,
-        background: tpl.background,
+        background: bg,
         fields: coerceFields(s.template!, s.fields),
       };
       // Preserve freeform elements if a valid array was supplied (import path).
       if (Array.isArray(s.elements)) slide.elements = s.elements as Slide["elements"];
+      if (typeof s.notes === "string") slide.notes = s.notes;
       return slide;
     });
 
@@ -77,6 +85,7 @@ export function validateDeck(raw: unknown, title = "Generated deck"): Deck {
   }
 
   return {
+    id: typeof r.id === "string" && r.id ? r.id : uid("deck"),
     schemaVersion: 1,
     brandId: "soch",
     meta: { title: r.meta?.title || title, createdAt: now, updatedAt: now },

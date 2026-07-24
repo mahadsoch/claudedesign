@@ -1,4 +1,6 @@
-import type { CSSProperties, ReactNode } from "react";
+"use client";
+
+import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { STAGE_W, STAGE_H, type Background } from "@/lib/model/deck";
 import { isIconRef, iconNameOf, renderIcon } from "@/lib/icons/iconSet";
 
@@ -9,6 +11,21 @@ const BG_STYLE: Record<Background, CSSProperties> = {
   coral: { background: "var(--coral)", color: "var(--cream)" },
 };
 
+// Templates hardcode their own `<Stage background="…">`. To let a slide override
+// its background without editing all 25 templates, SlideRenderer wraps the
+// render in this provider and Stage prefers the override when present.
+const StageBackgroundCtx = createContext<Background | null>(null);
+
+export function StageBackgroundProvider({
+  value,
+  children,
+}: {
+  value: Background | null;
+  children: ReactNode;
+}) {
+  return <StageBackgroundCtx.Provider value={value}>{children}</StageBackgroundCtx.Provider>;
+}
+
 export function Stage({
   background,
   children,
@@ -18,6 +35,8 @@ export function Stage({
   children: ReactNode;
   style?: CSSProperties;
 }) {
+  const override = useContext(StageBackgroundCtx);
+  const bg = override ?? background;
   return (
     <div
       className="slide-stage"
@@ -28,7 +47,7 @@ export function Stage({
         overflow: "hidden",
         fontFamily: "var(--font-body)",
         boxSizing: "border-box",
-        ...BG_STYLE[background],
+        ...BG_STYLE[bg],
         ...style,
       }}
     >

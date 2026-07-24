@@ -23,6 +23,8 @@ export interface Slide {
   fields: Record<string, FieldValue>;
   /** Freeform overrides — present only after a slide is detached to canvas. */
   elements?: SlideElement[];
+  /** Presenter-only speaker notes. Never rendered on the slide or in the PDF. */
+  notes?: string;
 }
 
 export interface DeckMeta {
@@ -32,6 +34,8 @@ export interface DeckMeta {
 }
 
 export interface Deck {
+  /** Stable per-deck id — the IndexedDB key and the library identity. */
+  id: string;
   schemaVersion: 1;
   brandId: string;
   meta: DeckMeta;
@@ -73,6 +77,7 @@ export function uid(prefix = "el"): string {
 export function emptyDeck(title = "Untitled deck"): Deck {
   const now = new Date().toISOString();
   return {
+    id: uid("deck"),
     schemaVersion: 1,
     brandId: "soch",
     meta: { title, createdAt: now, updatedAt: now },
