@@ -11,7 +11,9 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
     "idb": "^8.0.0",
+    "jszip": "^3.10.1",
     "next": "15.5.4",
+    "pptxgenjs": "^4.0.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-moveable": "^0.56.0",

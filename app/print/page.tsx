@@ -42,8 +42,13 @@ export default function PrintPage() {
 
   return (
     <div data-print-root {...(ready ? { "data-print-ready": "1" } : {})}>
-      {deck.slides.map((slide) => (
-        <div key={slide.id} className="print-slide" style={{ width: STAGE_W, height: STAGE_H }}>
+      {deck.slides.map((slide, i) => (
+        <div
+          key={slide.id}
+          className="print-slide"
+          data-slide-index={i}
+          style={{ width: STAGE_W, height: STAGE_H }}
+        >
           <SlideRenderer slide={slide} ctx={ctx} />
         </div>
       ))}

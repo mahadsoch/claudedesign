@@ -87,6 +87,36 @@ The PDF route (`app/api/pdf`) uses Playwright + headless Chromium. If Chromium
 isn't found, set `PLAYWRIGHT_CHROMIUM_PATH` in `.env.local` to your Chromium
 binary (the app also checks `/opt/pw-browsers/chromium` by default).
 
+### PPTX export
+
+**Download PPTX** produces a `.pptx` of real, editable PowerPoint objects — text
+boxes you can retype, rounded rectangles you can recolour, pictures you can drag
+— that looks the same as the PDF.
+
+It works by *measuring* the rendered deck rather than re-describing it: the route
+loads the same `/print` page in headless Chromium and reads final geometry out of
+the browser's own layout engine (`getBoundingClientRect`, `getComputedStyle`,
+`Range.getClientRects`), then emits that as native shapes. So all 25 templates and
+the freeform canvas export from one code path, and the output can never drift from
+what the editor shows. See `lib/pptx/` — `domExtract.ts` measures, `buildPptx.ts`
+emits.
+
+Two things worth knowing:
+
+- **Fonts are embedded.** `public/fonts/` holds the ten TrueType faces the deck
+  uses (Poppins, Open Sans, JetBrains Mono — all OFL/Apache, all flagged
+  installable), and `embedFonts.ts` writes them into the `.pptx`. Recipients on
+  Windows PowerPoint need nothing installed. **Mac PowerPoint and Google Slides
+  ignore embedded fonts** and will substitute; because wrapped text carries pinned
+  line breaks, they lose glyph shapes but not layout.
+- **The "Flat" checkbox** next to the button exports each slide as one flat image
+  instead. Pixel-perfect and nothing is editable — an escape hatch, not the
+  default.
+
+`POST /api/pptx` also accepts `{ "debug": true }`, which returns the measured
+intermediate representation as JSON instead of a file. That is the fastest way to
+see why a slide exported wrong.
+
 ## How it's built
 
 - `components/templates/` — one self-describing module per archetype
@@ -106,4 +136,6 @@ binary (the app also checks `/opt/pw-browsers/chromium` by default).
   `ANTHROPIC_API_KEY` or, failing that, the local `claude` CLI (`lib/ai/claudeCode.ts`).
 - `app/api/pdf/` + `app/print/` — the deck is rendered by the same components at
   1920×1080 and captured by Playwright, so the PDF matches the editor exactly.
+- `app/api/pptx/` + `lib/pptx/` — the same `/print` render, measured in the browser
+  and re-emitted as native PowerPoint objects (see PPTX export above).
 - `styles/tokens.css` + `DESIGN.md` — the single source of brand truth.

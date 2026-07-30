@@ -113,6 +113,52 @@ via `lib/pdf/browser.ts` (`PLAYWRIGHT_CHROMIUM_PATH` → `/opt/pw-browsers/chrom
 → bundled). Playwright is kept out of the client bundle via
 `serverExternalPackages` in `next.config.mjs`; PDF/generate routes are `runtime: "nodejs"`.
 
+### PPTX export (`app/api/pptx` + `lib/pptx`)
+
+Produces a deck of **native, editable PowerPoint objects** that matches the PDF.
+
+**The rule: measure the layout, never re-implement it.** The route reuses the PDF
+rig (same `jobStore`, `browser.ts`, `/print` page, `[data-print-ready]` marker),
+but instead of printing it runs `extractDeckIR` (`lib/pptx/domExtract.ts`) *inside*
+the page via `page.evaluate`, reading final geometry from the browser's own layout
+engine — `getBoundingClientRect`, `getComputedStyle`, `Range.getClientRects`. That
+flat, absolutely-positioned IR (`lib/pptx/types.ts`) becomes PPTX shapes in
+`buildPptx.ts`.
+
+Consequences worth preserving:
+- All 25 templates **and** the freeform canvas export from one code path. A new
+  template needs *zero* PPTX code — it still costs one file + one registry line.
+- The PPTX cannot drift from the editor, because it comes from the same React
+  render. Do **not** add a per-template PPTX emitter; the 5 `expand()` functions
+  have already drifted from their own `render()` (e.g. `contact-cta` render gives
+  `letterSpacing: -4` via `AccentTitle`'s `size > 90` branch, its `expand` says
+  `-3`), which is exactly the failure mode to avoid.
+- `getComputedStyle` returns *used* values, so `var(--coral)` arrives as
+  `rgb(241,89,68)`. No CSS-variable table is needed, and hard-coded off-token
+  hexes are handled by the same path.
+
+Details that matter:
+- **Units are exact**: 1920px ÷ 13.333in = 144 px/in, so `inches = px/144`,
+  `pt = px/2`, `1px = 6350 EMU`. Every `TYPE_SCALE` size and letter-spacing lands
+  on a clean 0.5pt boundary.
+- **Hybrid wrapping**: single-line text flows naturally; text Chromium wrapped is
+  emitted one paragraph per measured line with `wrap: false`, so PowerPoint can
+  never re-wrap it differently.
+- **Text position anchors to the measured baseline**, not the box edge, because
+  PowerPoint places the first line differently from CSS under exact line spacing.
+  If exported type ever sits uniformly high/low, `BASELINE_LINES` /
+  `BASELINE_NUDGE_PX` in `buildPptx.ts` are the single knobs.
+- **Fonts**: PPTX has no numeric weights, so `fonts.ts` maps weight → the face's
+  own legacy family name (`Poppins SemiBold`) and `embedFonts.ts` writes the TTFs
+  from `public/fonts/` into the zip. Mac PowerPoint / Google Slides ignore embedded
+  fonts.
+- `domExtract.ts` is serialised by `page.evaluate`, so it **must stay
+  self-contained** — no imports, no module-scope references, no syntax that makes
+  the compiler hoist a helper out of the function body.
+- `POST /api/pptx` takes `{ debug: true }` (return the IR as JSON — use this first
+  when a slide looks wrong) and `{ flatten: true }` (screenshot each slide; perfect
+  but non-editable).
+
 ### Images (`lib/persistence/imageStore.ts`)
 
 An image field value is one of: `blob:<key>` (uploaded blob in IndexedDB, resolved

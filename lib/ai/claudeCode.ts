@@ -31,10 +31,18 @@ export function runClaudeCode(
     delete env.ANTHROPIC_API_KEY;
     delete env.ANTHROPIC_AUTH_TOKEN;
 
+    // On Windows, npm installs the CLI as `claude.cmd`, which the OS can only
+    // execute via a shell — spawn() without `shell: true` fails with ENOENT
+    // even when `claude` is on PATH and logged in. With shell: true, Node joins
+    // argv into one unescaped command string, so any arg containing shell
+    // metacharacters (e.g. DESIGN.md's markdown tables are full of `|`) would
+    // get silently mangled by cmd.exe — so system/user content must go over
+    // stdin, never argv. Keep argv limited to short, fixed, safe tokens.
+    const isWindows = process.platform === "win32";
     const child = spawn(
       "claude",
-      ["-p", "--output-format", "json", "--model", model, "--append-system-prompt", system],
-      { env, stdio: ["pipe", "pipe", "pipe"] }
+      ["-p", "--output-format", "json", "--model", model],
+      { env, stdio: ["pipe", "pipe", "pipe"], shell: isWindows }
     );
 
     let stdout = "";
@@ -65,6 +73,12 @@ export function runClaudeCode(
     child.on("close", (code) => {
       finish(() => {
         if (code !== 0) {
+          // With shell: true (Windows), a missing CLI surfaces here instead of
+          // an ENOENT `error` event — detect the shell's "not found" message.
+          if (isWindows && /not recognized as an internal or external command/i.test(stderr)) {
+            reject(new ClaudeCodeNotInstalledError());
+            return;
+          }
           reject(new Error(stderr.trim() || `Claude Code exited with code ${code}.`));
           return;
         }
@@ -82,8 +96,9 @@ export function runClaudeCode(
       });
     });
 
-    // Pass the (user-controlled) brief via stdin to avoid argv length/escaping issues.
-    child.stdin.write(user);
+    // Send both system and user content over stdin (never argv/shell-parsed) to
+    // avoid argv length limits and shell metacharacter mangling.
+    child.stdin.write(`=== SYSTEM INSTRUCTIONS ===\n${system}\n\n=== USER REQUEST ===\n${user}`);
     child.stdin.end();
   });
 }

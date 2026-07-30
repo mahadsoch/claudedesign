@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { SlideElement } from "@/lib/model/deck";
 import type { RenderCtx } from "@/components/templates/types";
 import { parseAccents } from "@/components/templates/_shared/primitives";
+import { isIconRef, iconNameOf, renderIcon } from "@/lib/icons/iconSet";
 
 // The visual content of an element, filling its box (no positioning). Shared by
 // the static renderer (print/thumbnails) and the interactive canvas wrapper, so
@@ -27,6 +28,26 @@ export function elementContent(el: SlideElement, ctx: RenderCtx) {
   }
 
   if (el.type === "image") {
+    // A bundled icon ref is not a URL — it has to be drawn, not loaded. The
+    // Inspector can put `icon:<name>` into an image field, so a detached slide
+    // can carry one here.
+    if (isIconRef(el.content)) {
+      const name = iconNameOf(el.content);
+      return (
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: (style.color as string) ?? "var(--coral)",
+          }}
+        >
+          {name ? renderIcon(name, Math.round(Math.min(el.w, el.h) * 0.8)) : null}
+        </div>
+      );
+    }
     const src = ctx.resolveImage(el.content);
     return src ? (
       // eslint-disable-next-line @next/next/no-img-element

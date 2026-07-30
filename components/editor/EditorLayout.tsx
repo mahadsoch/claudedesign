@@ -6,6 +6,7 @@ import type { RenderCtx } from "@/components/templates/types";
 import { resolveImageSync, resolveImageAsync } from "@/lib/persistence/imageStore";
 import { exportDeckJson, importDeckJson } from "@/lib/persistence/transfer";
 import { exportDeckPdf } from "@/lib/pdf/exportPdf";
+import { exportDeckPptx } from "@/lib/pptx/exportPptx";
 import { SlidePalette } from "./SlidePalette";
 import { PreviewStage } from "./PreviewStage";
 import { Inspector } from "./Inspector";
@@ -28,6 +29,8 @@ export function EditorLayout() {
   const canRedo = useDeck((s) => s.future.length > 0);
 
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [pptxBusy, setPptxBusy] = useState(false);
+  const [pptxFlatten, setPptxFlatten] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
@@ -95,6 +98,17 @@ export function EditorLayout() {
     }
   }
 
+  async function onExportPptx() {
+    setPptxBusy(true);
+    try {
+      await exportDeckPptx(deck, { flatten: pptxFlatten });
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setPptxBusy(false);
+    }
+  }
+
   if (!hydrated) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#888" }}>
@@ -144,6 +158,17 @@ export function EditorLayout() {
         </button>
         <button className="btn primary" onClick={onExportPdf} disabled={pdfBusy}>
           {pdfBusy ? "Rendering…" : "Download PDF"}
+        </button>
+        <label
+          className="btn"
+          title="Export each slide as one flat image instead of editable objects. Pixel-perfect, but nothing can be edited in PowerPoint — use only if a slide exports wrong."
+          style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+        >
+          <input type="checkbox" checked={pptxFlatten} onChange={(e) => setPptxFlatten(e.target.checked)} />
+          Flat
+        </label>
+        <button className="btn primary" onClick={onExportPptx} disabled={pptxBusy}>
+          {pptxBusy ? "Building…" : "Download PPTX"}
         </button>
         <input
           ref={importRef}
