@@ -151,7 +151,8 @@ Details that matter:
 - **Fonts**: PPTX has no numeric weights, so `fonts.ts` maps weight → the face's
   own legacy family name (`Poppins SemiBold`) and `embedFonts.ts` writes the TTFs
   from `public/fonts/` into the zip. Mac PowerPoint / Google Slides ignore embedded
-  fonts.
+  fonts — for those, `GET /api/fonts` zips the same `EMBED_FACES` files plus an
+  `INSTALL.txt` so the recipient can install them ("Fonts" button in the topbar).
 - `domExtract.ts` is serialised by `page.evaluate`, so it **must stay
   self-contained** — no imports, no module-scope references, no syntax that makes
   the compiler hoist a helper out of the function body.

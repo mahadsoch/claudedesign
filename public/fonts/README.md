@@ -3,9 +3,11 @@
 These ten `.ttf` files exist for one reason: **PPTX font embedding needs
 TrueType**, and `next/font` only emits `.woff2`. The app itself does not load
 them — the browser still gets its fonts from `next/font/google` (see
-`app/layout.tsx`). Only `lib/pptx/embedFonts.ts` reads this directory, to write
-the faces into an exported `.pptx` so recipients see the brand type without
-installing anything.
+`app/layout.tsx`). Two things read this directory: `lib/pptx/embedFonts.ts`, which
+writes the faces into an exported `.pptx` so recipients see the brand type without
+installing anything, and `app/api/fonts/route.ts`, which zips them for download
+(the escape hatch for Mac PowerPoint and Google Slides, which ignore embedded
+fonts).
 
 ## Why these exact ten
 

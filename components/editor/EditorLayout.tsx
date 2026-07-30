@@ -7,6 +7,7 @@ import { resolveImageSync, resolveImageAsync } from "@/lib/persistence/imageStor
 import { exportDeckJson, importDeckJson } from "@/lib/persistence/transfer";
 import { exportDeckPdf } from "@/lib/pdf/exportPdf";
 import { exportDeckPptx } from "@/lib/pptx/exportPptx";
+import { downloadBrandFonts } from "@/lib/pptx/exportFonts";
 import { SlidePalette } from "./SlidePalette";
 import { PreviewStage } from "./PreviewStage";
 import { Inspector } from "./Inspector";
@@ -31,6 +32,7 @@ export function EditorLayout() {
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pptxBusy, setPptxBusy] = useState(false);
   const [pptxFlatten, setPptxFlatten] = useState(false);
+  const [fontsBusy, setFontsBusy] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
@@ -109,6 +111,17 @@ export function EditorLayout() {
     }
   }
 
+  async function onDownloadFonts() {
+    setFontsBusy(true);
+    try {
+      await downloadBrandFonts();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setFontsBusy(false);
+    }
+  }
+
   if (!hydrated) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#888" }}>
@@ -169,6 +182,14 @@ export function EditorLayout() {
         </label>
         <button className="btn primary" onClick={onExportPptx} disabled={pptxBusy}>
           {pptxBusy ? "Building…" : "Download PPTX"}
+        </button>
+        <button
+          className="btn"
+          title="Download the brand fonts (.ttf) to install. The PPTX already embeds them — only needed for Mac PowerPoint or Google Slides, which ignore embedded fonts."
+          onClick={onDownloadFonts}
+          disabled={fontsBusy}
+        >
+          {fontsBusy ? "Zipping…" : "Fonts"}
         </button>
         <input
           ref={importRef}
