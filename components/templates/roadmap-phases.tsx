@@ -2,9 +2,9 @@ import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
 import { Stage, SectionHead } from "./_shared/primitives";
 
-// The "wider roadmap" slide: an ascending timeline band with a marker per
-// phase (one flagged "YOU ARE HERE"), then phase columns with a name,
-// description and price below.
+// The "wider roadmap" slide: a rising bar per phase (one flagged
+// "YOU ARE HERE"), each sitting directly on the rule of its column, which
+// carries the price/label, name and description.
 export const roadmapPhases: TemplateDef = {
   id: "roadmap-phases",
   name: "Roadmap · phases",
@@ -43,39 +43,66 @@ export const roadmapPhases: TemplateDef = {
   render: (f) => {
     const phases = rows(f.phases);
     const n = Math.max(phases.length, 1);
+    // The chart band flexes to whatever height the descriptions leave, so the
+    // bars are sized as a fraction of it: the last phase fills the band, the
+    // first is BAR_MIN of it. FLAG_H is held back from every bar so the tallest
+    // one still clears its flag pill — whichever phase carries it.
+    const BAR_MIN = 0.62;
+    const FLAG_H = 49;
+    const cols = `repeat(${n}, 1fr)`;
+    // Reserve the price row in every column once any phase has one, so the
+    // names stay on one line across the row.
+    const hasPrice = phases.some((p) => !!p.price);
     return (
       <Stage background="cream" style={{ padding: "90px 130px 70px", display: "flex", flexDirection: "column" }}>
         <SectionHead kicker={str(f.kicker)} title={str(f.title)} />
 
-        {/* Ascending marker band */}
-        <div style={{ position: "relative", height: 190, marginTop: 44, background: "var(--coral-wash)", borderRadius: 20 }}>
-          {phases.map((p, i) => {
-            const left = ((i + 0.5) / n) * 100;
-            const bottom = 30 + (i / Math.max(n - 1, 1)) * 96;
-            return (
-              <div key={i} style={{ position: "absolute", left: `${left}%`, bottom, transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                {p.flag && (
-                  <div style={{ background: "var(--coral)", color: "var(--cream)", fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 15, letterSpacing: 1.5, padding: "6px 14px", borderRadius: 999, whiteSpace: "nowrap" }}>
-                    {p.flag}
-                  </div>
-                )}
-                <div style={{ width: 20, height: 20, borderRadius: 9999, background: p.flag ? "var(--coral)" : "var(--ink)", border: "3px solid var(--cream)" }} />
+        {/* Ascending phase bars — each rests on the rule of its column below */}
+        <div style={{ marginTop: 64, flex: 1, minHeight: 220, maxHeight: 420, display: "grid", gridTemplateColumns: cols, gap: 44 }}>
+          {phases.map((p, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              {p.flag && (
+                <div style={{ alignSelf: "flex-start", background: "var(--coral)", color: "var(--cream)", fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 15, letterSpacing: 1.5, padding: "6px 14px", borderRadius: 999, whiteSpace: "nowrap", marginBottom: 16 }}>
+                  {p.flag}
+                </div>
+              )}
+              <div
+                style={{
+                  height: `calc((100% - ${FLAG_H}px) * ${BAR_MIN + ((1 - BAR_MIN) * i) / Math.max(n - 1, 1)})`,
+                  borderRadius: "16px 16px 0 0",
+                  background: p.flag ? "var(--coral)" : "var(--coral-wash)",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "flex-end",
+                  padding: "0 0 22px 28px",
+                  boxSizing: "border-box",
+                  fontFamily: "var(--font-title)",
+                  fontWeight: 600,
+                  fontSize: 60,
+                  lineHeight: 1,
+                  letterSpacing: -2,
+                  color: p.flag ? "var(--cream)" : "var(--coral)",
+                }}
+              >
+                {String(i + 1).padStart(2, "0")}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
-        <div style={{ marginTop: 36, flex: 1, display: "grid", gridTemplateColumns: `repeat(${n}, 1fr)`, gap: 44, minHeight: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: cols, gap: 44 }}>
           {phases.map((p, i) => (
-            <div key={i} style={{ borderTop: "1px solid var(--card-border)", paddingTop: 22, display: "flex", flexDirection: "column" }}>
-              <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 30, letterSpacing: -0.5 }}>{p.name}</div>
-              <p style={{ fontSize: 22, lineHeight: 1.5, color: "var(--body-light)", margin: "12px 0 0", flex: 1 }}>{p.desc}</p>
-              {p.price && <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, letterSpacing: 1, color: "var(--ink)", marginTop: 18 }}>{p.price}</div>}
+            <div key={i} style={{ borderTop: "1px solid var(--card-border)", paddingTop: 22 }}>
+              {hasPrice && (
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, lineHeight: "24px", height: 24, letterSpacing: 1.5, color: "var(--coral)" }}>{p.price}</div>
+              )}
+              <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 30, letterSpacing: -0.5, marginTop: hasPrice ? 12 : 0 }}>{p.name}</div>
+              <p style={{ fontSize: 22, lineHeight: 1.5, color: "var(--body-light)", margin: "12px 0 0" }}>{p.desc}</p>
             </div>
           ))}
         </div>
         {str(f.footnote) && (
-          <p style={{ fontSize: 22, lineHeight: 1.5, color: "var(--body-light)", margin: "36px 0 0" }}>{str(f.footnote)}</p>
+          <p style={{ fontSize: 22, lineHeight: 1.5, color: "var(--body-light)", margin: "auto 0 0", paddingTop: 36 }}>{str(f.footnote)}</p>
         )}
       </Stage>
     );
