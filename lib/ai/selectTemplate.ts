@@ -1,5 +1,6 @@
 import { getTemplate } from "@/components/templates/registry";
 import { rankTemplates } from "@/lib/ai/suggestTemplates";
+import type { Background } from "@/lib/model/deck";
 
 // Content-driven template selection for AI generation. The generator plans a
 // deck as a list of { intent, contentType } beats; this module turns each beat
@@ -92,6 +93,55 @@ export function chooseTemplates(beats: PlanBeat[]): string[] {
     used.set(pick, (used.get(pick) ?? 0) + 1);
     prev = pick;
   }
+
+  return out;
+}
+
+// ── Background rhythm ───────────────────────────────────────────────────────
+// DESIGN.md: dark anchors the deck (open, impact, close), coral carries the
+// emotional beats (quotes and principles), cream does the workhorse content,
+// and no two adjacent slides share a heavy background unless intended.
+//
+// This could not previously happen at all: `validateDeck` overwrote whatever
+// the model chose with the template's own default, and most templates default
+// to cream — so the recommended spine produced one dark slide followed by ten
+// consecutive cream ones, with no coral anywhere.
+
+/** Content types that *are* the emotional beat, and belong on coral. */
+const CORAL_TYPES = new Set(["quote", "principles"]);
+/** Content types that anchor the deck, and belong on ink. */
+const DARK_TYPES = new Set(["cover", "statement", "metrics", "results", "closing", "comparison"]);
+
+const MAX_CREAM_RUN = 2;
+
+/**
+ * Assign a background per slide from the planned beats, honouring the rhythm.
+ * Returns one background per beat, aligned with `chooseTemplates`' output.
+ */
+export function assignBackgrounds(beats: PlanBeat[], templateIds: string[]): Background[] {
+  const out: Background[] = [];
+  let creamRun = 0;
+
+  beats.forEach((beat, i) => {
+    const isFirst = i === 0;
+    const isLast = i === beats.length - 1;
+    const tpl = getTemplate(templateIds[i] ?? "");
+    let bg: Background;
+
+    if (CORAL_TYPES.has(beat.contentType)) bg = "coral";
+    else if (isFirst || isLast || DARK_TYPES.has(beat.contentType)) bg = "dark";
+    else if (creamRun >= MAX_CREAM_RUN) {
+      // The run has gone on too long. Break it with the heavier of the two —
+      // dark unless the template's own default says this is a coral moment.
+      bg = tpl?.background === "coral" ? "coral" : "dark";
+    } else bg = "cream";
+
+    // Never repeat a heavy background on adjacent slides; drop back to cream.
+    if (bg !== "cream" && out[i - 1] === bg) bg = "cream";
+
+    creamRun = bg === "cream" ? creamRun + 1 : 0;
+    out.push(bg);
+  });
 
   return out;
 }

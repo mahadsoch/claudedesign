@@ -5,7 +5,7 @@ import Moveable from "react-moveable";
 import Selecto from "react-selecto";
 import type { Slide, SlideElement } from "@/lib/model/deck";
 import { STAGE_W, STAGE_H } from "@/lib/model/deck";
-import type { RenderCtx } from "@/components/templates/types";
+import type { BaseRenderCtx } from "@/components/templates/types";
 import { useDeck } from "@/lib/state/deckStore";
 import { Stage } from "@/components/templates/_shared/primitives";
 import { elementContent } from "./renderElement";
@@ -17,7 +17,7 @@ type Geo = Pick<SlideElement, "x" | "y" | "w" | "h" | "rotation">;
  *  the CSS transform applied by PreviewStage, fed to Moveable's `zoom` so
  *  handles stay screen-sized while all geometry math stays in 1920-px design
  *  coordinates. */
-export function CanvasStage({ slide, scale, ctx }: { slide: Slide; scale: number; ctx: RenderCtx }) {
+export function CanvasStage({ slide, scale, ctx }: { slide: Slide; scale: number; ctx: BaseRenderCtx }) {
   const elements = slide.elements ?? [];
   const selectedIds = useDeck((s) => s.selectedElementIds);
   const editingId = useDeck((s) => s.editingElementId);

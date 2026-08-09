@@ -1,5 +1,7 @@
-import type { Deck, Slide, FieldValue } from "@/lib/model/deck";
+import type { Deck, Slide, FieldValue, Background } from "@/lib/model/deck";
 import { uid } from "@/lib/model/deck";
+
+const BACKGROUNDS: Background[] = ["dark", "cream", "coral"];
 import { getTemplate } from "@/components/templates/registry";
 import type { FieldDef } from "@/components/templates/types";
 
@@ -7,10 +9,30 @@ import type { FieldDef } from "@/components/templates/types";
 // keep only known templates + field keys, enforce maxLength / maxItems, fill
 // missing fields from the template defaults. Brand safety by construction.
 
+/**
+ * Truncate to `max` characters on a word boundary, with an ellipsis. A hard
+ * mid-word slice is worse than useless here: the deck ships to a client with a
+ * visibly chopped word rather than a sentence that merely ends early.
+ */
+function truncate(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  const stem = (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.–—-]+$/, "");
+  return stem + "…";
+}
+
 function coerceScalar(def: FieldDef, value: unknown, fallback: FieldValue): FieldValue {
   if (value == null) return fallback;
   let s = typeof value === "string" ? value : String(value);
-  if (def.maxLength && s.length > def.maxLength) s = s.slice(0, def.maxLength);
+  // A `select` may only ever hold one of its declared options, so a template
+  // can branch on the value without defensive parsing.
+  if (def.type === "select") {
+    const options = def.options ?? [];
+    if (options.length === 0) return s;
+    return options.some((o) => o.value === s) ? s : String(fallback || options[0].value);
+  }
+  if (def.maxLength && s.length > def.maxLength) s = truncate(s, def.maxLength);
   return s;
 }
 
@@ -61,10 +83,16 @@ export function validateDeck(raw: unknown, title = "Generated deck"): Deck {
     .filter((s) => s.template && getTemplate(s.template))
     .map((s) => {
       const tpl = getTemplate(s.template!)!;
+      // The slide owns its background; the template only supplies the default.
+      // Honouring an explicit value here is what lets the generator (and an
+      // imported deck) express DESIGN.md's background rhythm at all.
+      const bg = BACKGROUNDS.includes(s.background as Background)
+        ? (s.background as Background)
+        : tpl.background;
       const slide: Slide = {
         id: s.id || uid("sl"),
         template: s.template!,
-        background: tpl.background,
+        background: bg,
         fields: coerceFields(s.template!, s.fields),
       };
       // Preserve freeform elements if a valid array was supplied (import path).

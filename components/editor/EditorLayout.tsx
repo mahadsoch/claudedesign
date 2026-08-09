@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDeck } from "@/lib/state/deckStore";
-import type { RenderCtx } from "@/components/templates/types";
+import type { BaseRenderCtx } from "@/components/templates/types";
 import { resolveImageSync, resolveImageAsync } from "@/lib/persistence/imageStore";
 import { exportDeckJson, importDeckJson } from "@/lib/persistence/transfer";
 import { exportDeckPdf } from "@/lib/pdf/exportPdf";
@@ -81,7 +81,7 @@ export function EditorLayout() {
     };
   }, [deck.slides, bumpImages]);
 
-  const ctx: RenderCtx = useMemo(
+  const ctx: BaseRenderCtx = useMemo(
     () => ({ resolveImage: resolveImageSync }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [imageVersion]
@@ -209,7 +209,16 @@ export function EditorLayout() {
       </div>
 
       <SlidePalette ctx={ctx} onBrowse={() => setShowTemplates(true)} />
-      {current ? <PreviewStage slide={current} ctx={ctx} /> : <div className="stage-wrap" />}
+      {current ? (
+        <PreviewStage
+          slide={current}
+          ctx={ctx}
+          slideNumber={deck.slides.findIndex((s) => s.id === current.id) + 1}
+          slideCount={deck.slides.length}
+        />
+      ) : (
+        <div className="stage-wrap" />
+      )}
       <Inspector />
 
       {showGenerate && (

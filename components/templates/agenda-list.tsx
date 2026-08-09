@@ -1,10 +1,9 @@
 import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
-import { Stage, SectionHead } from "./_shared/primitives";
+import { Stage, SectionHead, Numeral, SlideFooter, tone, TYPE, titleTracking } from "./_shared/primitives";
 
-// A numbered agenda / walkthrough — up to eight items laid out in two columns,
-// each a coral numeral, a title and a one-line description. The "Proposal
-// Walkthrough" contents slide from the decks.
+// A numbered agenda / walkthrough — up to eight items in two columns, each a
+// mono numeral, a title and a one-line description, on a hairline rule.
 export const agendaList: TemplateDef = {
   id: "agenda-list",
   name: "Agenda · numbered list",
@@ -40,20 +39,28 @@ export const agendaList: TemplateDef = {
       { title: "Next Steps", desc: "From review to kickoff" },
     ],
   }),
-  render: (f) => {
+  render: (f, ctx) => {
+    const t = tone(ctx.background);
     const items = rows(f.items);
+    // Rows share the available height rather than stacking at min-content, which
+    // is what used to leave a ~350px void under a short agenda.
+    const perCol = Math.ceil(Math.max(items.length, 1) / 2);
     return (
-      <Stage background="cream" style={{ padding: "90px 130px", display: "flex", flexDirection: "column" }}>
-        <SectionHead kicker={str(f.kicker)} title={str(f.title)} />
+      <Stage
+        background={ctx.background}
+        style={{ padding: "var(--pad-y) var(--pad-x) 128px", display: "flex", flexDirection: "column" }}
+      >
+        <SectionHead kicker={str(f.kicker)} title={str(f.title)} size={TYPE.h3} tone={t} />
         <div
           style={{
-            marginTop: 56,
+            marginTop: "var(--s6)",
             flex: 1,
+            minHeight: 0,
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gridAutoRows: "min-content",
+            gridTemplateRows: `repeat(${perCol}, 1fr)`,
+            gridAutoFlow: "column",
             columnGap: 90,
-            rowGap: 6,
           }}
         >
           {items.map((it, i) => (
@@ -63,30 +70,32 @@ export const agendaList: TemplateDef = {
                 display: "flex",
                 gap: 26,
                 alignItems: "baseline",
-                padding: "22px 0",
-                borderBottom: "1px solid var(--card-border)",
+                padding: "18px 0",
+                borderBottom: `var(--rule-hair) solid ${t.rule}`,
+                minHeight: 0,
               }}
             >
-              <span
-                style={{
-                  fontFamily: "var(--font-title)",
-                  fontWeight: 600,
-                  fontSize: 34,
-                  color: "var(--coral)",
-                  minWidth: 54,
-                }}
-              >
-                {String(i + 1).padStart(2, "0")}
-              </span>
+              <Numeral n={i + 1} tone={t} size={TYPE.h6} style={{ minWidth: 58 }} />
               <div>
-                <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 32, letterSpacing: -0.5 }}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-title)",
+                    fontWeight: 600,
+                    fontSize: TYPE.h5 - 4,
+                    letterSpacing: titleTracking(TYPE.h5 - 4),
+                    color: t.title,
+                  }}
+                >
                   {it.title}
                 </div>
-                {it.desc && <div style={{ fontSize: 24, color: "var(--body-light)", marginTop: 6 }}>{it.desc}</div>}
+                {it.desc && (
+                  <div style={{ fontSize: TYPE.bodySm + 2, color: t.body, marginTop: 6 }}>{it.desc}</div>
+                )}
               </div>
             </div>
           ))}
         </div>
+        <SlideFooter tone={t} slideNumber={ctx.slideNumber} slideCount={ctx.slideCount} />
       </Stage>
     );
   },

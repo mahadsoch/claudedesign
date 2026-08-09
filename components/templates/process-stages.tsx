@@ -1,10 +1,10 @@
 import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
-import { Stage, SectionHead } from "./_shared/primitives";
+import { Stage, SectionHead, Track, Numeral, Rule, tone, TYPE, titleTracking } from "./_shared/primitives";
 
-// A phased engagement laid out as horizontal stages: a big coral number, a
-// duration, a title, a description and a price, each capped by a rule. The
-// "four stages, scope fixed before build" slide.
+// A phased engagement laid out as connected stages: a continuous rail with a
+// node per stage, then a big index, a duration, a title, a description and a
+// price, each capped by a rule at a shared baseline.
 export const processStages: TemplateDef = {
   id: "process-stages",
   name: "Process · stages",
@@ -40,30 +40,85 @@ export const processStages: TemplateDef = {
     ],
     footnote: "Discovery is a fixed fee, credited against Build. It gives both sides certainty on scope and price.",
   }),
-  render: (f) => {
+  render: (f, ctx) => {
+    const t = tone(ctx.background);
     const stages = rows(f.stages);
+    const n = Math.max(stages.length, 1);
+    // A single stage would otherwise render as one 1680px-wide column.
+    const cols = n === 1 ? "minmax(0, 720px)" : `repeat(${n}, 1fr)`;
     return (
-      <Stage background="cream" style={{ padding: "90px 130px 70px", display: "flex", flexDirection: "column" }}>
-        <SectionHead kicker={str(f.kicker)} title={str(f.title)} />
-        <div style={{ marginTop: 56, flex: 1, display: "grid", gridTemplateColumns: `repeat(${Math.max(stages.length, 1)}, 1fr)`, gap: 44, minHeight: 0 }}>
+      <Stage
+        background={ctx.background}
+        style={{ padding: "var(--pad-y) var(--pad-x) 70px", display: "flex", flexDirection: "column" }}
+      >
+        <SectionHead kicker={str(f.kicker)} title={str(f.title)} tone={t} />
+
+        {/* The connective tissue the slide was missing: stages now read as one
+            sequence rather than as four unrelated columns. */}
+        {n > 1 && <Track count={n} tone={t} align="start" style={{ marginTop: "var(--s6)" }} />}
+
+        <div
+          style={{
+            marginTop: "var(--s5)",
+            flex: 1,
+            display: "grid",
+            gridTemplateColumns: cols,
+            gap: "var(--s5)",
+            minHeight: 0,
+          }}
+        >
           {stages.map((s, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column" }}>
-              <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 58, color: "var(--coral)", letterSpacing: -2, lineHeight: 1 }}>
-                {i + 1}
-              </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 20, letterSpacing: 3, fontWeight: 600, color: "var(--coral)", margin: "18px 0 14px" }}>
+            <div key={i} style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <Numeral n={i + 1} tone={t} size={TYPE.h3} />
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: TYPE.kickerSm,
+                  letterSpacing: 3,
+                  fontWeight: 600,
+                  color: t.accent,
+                  margin: "18px 0 14px",
+                }}
+              >
                 {s.duration}
               </div>
-              <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 28, letterSpacing: -0.5 }}>{s.name}</div>
-              <p style={{ fontSize: 22, lineHeight: 1.5, color: "var(--body-light)", margin: "14px 0 0", flex: 1 }}>{s.desc}</p>
-              <div style={{ borderTop: "1px solid var(--card-border)", marginTop: 22, paddingTop: 18, fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 22 }}>
-                {s.price}
+              <div
+                style={{
+                  fontFamily: "var(--font-title)",
+                  fontWeight: 600,
+                  fontSize: TYPE.h6,
+                  letterSpacing: titleTracking(TYPE.h6),
+                  color: t.title,
+                }}
+              >
+                {s.name}
               </div>
+              <p style={{ fontSize: TYPE.bodySm, lineHeight: 1.5, color: t.body, margin: "14px 0 0", flex: 1 }}>
+                {s.desc}
+              </p>
+              {s.price && (
+                <>
+                  <Rule tone={t} style={{ marginTop: 22 }} />
+                  <div
+                    style={{
+                      fontFamily: "var(--font-title)",
+                      fontWeight: 600,
+                      fontSize: TYPE.bodySm,
+                      paddingTop: 18,
+                      color: t.title,
+                    }}
+                  >
+                    {s.price}
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
         {str(f.footnote) && (
-          <p style={{ fontSize: 22, lineHeight: 1.5, color: "var(--body-light)", margin: "44px 0 0" }}>{str(f.footnote)}</p>
+          <p style={{ fontSize: TYPE.bodySm, lineHeight: 1.5, color: t.body, margin: "var(--s5) 0 0" }}>
+            {str(f.footnote)}
+          </p>
         )}
       </Stage>
     );

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useDeck } from "@/lib/state/deckStore";
 import { getTemplate } from "@/components/templates/registry";
 import type { FieldDef } from "@/components/templates/types";
+import type { Background } from "@/lib/model/deck";
 import { storeUpload, resolveImageSync } from "@/lib/persistence/imageStore";
 import { ICON_PREFIX, iconNames, renderIcon } from "@/lib/icons/iconSet";
 
@@ -39,6 +40,8 @@ export function Inspector() {
           🗑
         </button>
       </div>
+
+      <BackgroundPicker slideId={slide.id} value={slide.background} />
 
       {detached ? (
         <div style={{ font: "400 13px/1.6 var(--font-body)", color: "#9a9a9a" }}>
@@ -77,6 +80,17 @@ function Field({ slideId, def }: { slideId: string; def: FieldDef }) {
   if (def.type === "image") return <ImageField slideId={slideId} def={def} />;
 
   const v = typeof value === "string" ? value : "";
+
+  if (def.type === "select") {
+    return (
+      <div className="field">
+        <label>{def.label}</label>
+        <SelectInput def={def} value={v} onChange={(nv) => setField(slideId, def.key, nv)} />
+        {def.hint && <div className="hint">{def.hint}</div>}
+      </div>
+    );
+  }
+
   const common = {
     value: v,
     maxLength: def.maxLength,
@@ -91,6 +105,62 @@ function Field({ slideId, def }: { slideId: string; def: FieldDef }) {
       {def.type === "textarea" ? <textarea rows={2} {...common} /> : <input type="text" {...common} />}
       {def.hint && <div className="hint">{def.hint}</div>}
     </div>
+  );
+}
+
+// Per-slide background. DESIGN.md's background rhythm — dark for anchors, coral
+// for the emotional beats, cream for the workhorse content — only becomes real
+// once this is editable, because a template's own background is just a default.
+const BACKGROUNDS: { value: Background; label: string; swatch: string; ring: string }[] = [
+  { value: "cream", label: "Cream", swatch: "#fcf5eb", ring: "#d9d2c0" },
+  { value: "dark", label: "Ink", swatch: "#141414", ring: "#3a362e" },
+  { value: "coral", label: "Coral", swatch: "#f15944", ring: "#f15944" },
+];
+
+function BackgroundPicker({ slideId, value }: { slideId: string; value: Background }) {
+  const setBg = useDeck((s) => s.setSlideBackground);
+  return (
+    <div className="field">
+      <label>Background</label>
+      <div className="bg-swatches">
+        {BACKGROUNDS.map((b) => (
+          <button
+            key={b.value}
+            type="button"
+            title={b.label}
+            className={"bg-swatch" + (value === b.value ? " is-active" : "")}
+            style={{ background: b.swatch, borderColor: b.ring }}
+            onClick={() => setBg(slideId, b.value)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// A dropdown over a `select` field's declared options. Because the options are
+// declared on the template, a variant can be branched on in `render` without
+// any defensive string parsing — and the AI cannot invent an invalid value
+// (validateDeck coerces anything unknown back to the first option).
+function SelectInput({
+  def,
+  value,
+  onChange,
+}: {
+  def: FieldDef;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const options = def.options ?? [];
+  const current = options.some((o) => o.value === value) ? value : (options[0]?.value ?? "");
+  return (
+    <select className="field-select" value={current} onChange={(e) => onChange(e.target.value)}>
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -212,6 +282,12 @@ function ListField({ slideId, def }: { slideId: string; def: FieldDef }) {
                 <ImagePicker
                   value={item[sub.key] ?? ""}
                   picker={sub.picker}
+                  onChange={(v) => setItem(slideId, def.key, i, sub.key, v)}
+                />
+              ) : sub.type === "select" ? (
+                <SelectInput
+                  def={sub}
+                  value={item[sub.key] ?? ""}
                   onChange={(v) => setItem(slideId, def.key, i, sub.key, v)}
                 />
               ) : sub.type === "textarea" ? (

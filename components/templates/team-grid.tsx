@@ -1,9 +1,11 @@
 import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
-import { Stage, SectionHead, ImageBox } from "./_shared/primitives";
+import { Stage, SectionHead, Portrait, tone, TYPE, titleTracking } from "./_shared/primitives";
 
-// The team roster: a grid of headshot cards, each a photo, a name and a coral
-// mono role. Handles up to eight people, wrapping to four per row.
+// The team roster. Cells are portrait-proportioned (headshots crop badly in a
+// landscape box), the role is set at kicker size rather than 15px, and a person
+// with no photo gets an initials monogram — so the slide never ships as a grid
+// of dashed "Photo" placeholders.
 export const teamGrid: TemplateDef = {
   id: "team-grid",
   name: "Team grid",
@@ -36,37 +38,72 @@ export const teamGrid: TemplateDef = {
       { photo: "", name: "Mahad Imran", role: "DELIVERY OPS LEAD" },
       { photo: "", name: "Bilal Aftab", role: "TECH LEAD" },
       { photo: "", name: "Hijab Waheed", role: "IMPLEMENTATION LEAD" },
-      { photo: "", name: "Ahmad Tehseen", role: "AUTOMATION ENGINEER" },
-      { photo: "", name: "Husnain Shafqat", role: "OPS ANALYST" },
-      { photo: "", name: "Muniba Javed", role: "OPS ASSOCIATE" },
-      { photo: "", name: "Abeeha Aslam", role: "CONTENT STRATEGIST" },
     ],
   }),
   render: (f, ctx) => {
+    const t = tone(ctx.background);
     const people = rows(f.people);
-    const cols = people.length <= 4 ? people.length || 1 : 4;
+    const n = Math.max(people.length, 1);
+    const cols = n <= 4 ? Math.min(n, 4) : 4;
+    // Two people should not become two 800px-wide photo slabs.
+    const maxW = cols * 340 + (cols - 1) * 28;
     return (
-      <Stage background="cream" style={{ padding: "80px 130px", display: "flex", flexDirection: "column" }}>
-        <SectionHead kicker={str(f.kicker)} title={str(f.title)} size={56} />
-        {str(f.intro) && <p style={{ fontSize: 24, color: "var(--body-light)", margin: "18px 0 0" }}>{str(f.intro)}</p>}
+      <Stage
+        background={ctx.background}
+        style={{ padding: "80px var(--pad-x)", display: "flex", flexDirection: "column" }}
+      >
+        <SectionHead kicker={str(f.kicker)} title={str(f.title)} size={TYPE.h3 - 4} tone={t} />
+        {str(f.intro) && (
+          <p style={{ fontSize: TYPE.bodySm + 2, color: t.body, margin: "18px 0 0" }}>{str(f.intro)}</p>
+        )}
         <div
           style={{
-            marginTop: 40,
+            marginTop: "var(--s5)",
             flex: 1,
             display: "grid",
             gridTemplateColumns: `repeat(${cols}, 1fr)`,
             gridAutoRows: "1fr",
             gap: 28,
             minHeight: 0,
+            maxWidth: n < 4 ? maxW : "none",
           }}
         >
           {people.map((p, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
-              <div style={{ flex: 1, minHeight: 0 }}>
-                <ImageBox src={ctx.resolveImage(str(p.photo))} radius={18} placeholder="Photo" />
+              {/* 4:5 keeps the frame portrait, which is how faces sit. */}
+              <div style={{ flex: 1, minHeight: 0, aspectRatio: "4 / 5" }}>
+                <Portrait
+                  src={ctx.resolveImage(str(p.photo))}
+                  name={str(p.name)}
+                  tone={t}
+                  radius="var(--r-chip)"
+                />
               </div>
-              <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 24, letterSpacing: -0.5, marginTop: 14 }}>{p.name}</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, letterSpacing: 2, fontWeight: 600, color: "var(--coral)", marginTop: 5 }}>{p.role}</div>
+              <div
+                style={{
+                  fontFamily: "var(--font-title)",
+                  fontWeight: 600,
+                  fontSize: TYPE.bodySm + 4,
+                  letterSpacing: titleTracking(TYPE.bodySm + 4),
+                  marginTop: 16,
+                  color: t.title,
+                }}
+              >
+                {p.name}
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: TYPE.kickerSm,
+                  letterSpacing: 2,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  color: t.accent,
+                  marginTop: 6,
+                }}
+              >
+                {p.role}
+              </div>
             </div>
           ))}
         </div>

@@ -1,7 +1,7 @@
 import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
 import { uid } from "@/lib/model/deck";
-import { Stage, Kicker, parseAccents } from "./_shared/primitives";
+import { Stage, Kicker, Rule, Stat, parseAccents, tone, TYPE, titleTracking } from "./_shared/primitives";
 import type { SlideElement } from "@/lib/model/deck";
 
 export const bigStats: TemplateDef = {
@@ -37,18 +37,37 @@ export const bigStats: TemplateDef = {
     ],
     takeaway: "The gap is not the tools. The gap is [[how they are deployed.]]",
   }),
-  render: (f) => {
+  render: (f, ctx) => {
+    const t = tone(ctx.background);
     const stats = rows(f.stats);
+    const n = Math.max(stats.length, 1);
+    // A single stat gets the full stage rather than one 1680px-wide column, and
+    // is set larger because it is carrying the slide alone.
+    const solo = n === 1;
+    const figure = solo ? TYPE.stat + 60 : n === 2 ? TYPE.stat : TYPE.stat - 40;
     return (
-      <Stage background="dark" style={{ padding: "100px 120px 70px", display: "flex", flexDirection: "column" }}>
+      <Stage
+        background={ctx.background}
+        style={{ padding: "100px var(--pad-x) 70px", display: "flex", flexDirection: "column" }}
+      >
         <Kicker>{str(f.kicker)}</Kicker>
-        <h2 style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 72, letterSpacing: -2, lineHeight: 1.08, margin: "28px 0 0" }}>
+        <h2
+          style={{
+            fontFamily: "var(--font-title)",
+            fontWeight: 600,
+            fontSize: TYPE.h2,
+            letterSpacing: titleTracking(TYPE.h2),
+            lineHeight: 1.08,
+            margin: "28px 0 0",
+            color: t.title,
+          }}
+        >
           {parseAccents(str(f.title))}
         </h2>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: `repeat(${Math.max(stats.length, 1)}, 1fr)`,
+            gridTemplateColumns: solo ? "minmax(0, 1100px)" : `repeat(${n}, 1fr)`,
             gap: 80,
             marginTop: 70,
             flex: 1,
@@ -56,59 +75,80 @@ export const bigStats: TemplateDef = {
           }}
         >
           {stats.map((s, i) => (
-            <div key={i} style={{ borderTop: "2px solid var(--border-dark)", paddingTop: 44, display: "flex", flexDirection: "column", gap: 20 }}>
-              <div
-                style={{
-                  fontFamily: "var(--font-title)",
-                  fontWeight: 600,
-                  fontSize: 190,
-                  lineHeight: 0.95,
-                  letterSpacing: -6,
-                  color: i === 0 ? "var(--coral)" : "var(--cream)",
-                }}
-              >
-                <span>{s.value}</span>
-                <span style={{ fontSize: 100, letterSpacing: -2 }}>{s.unit}</span>
-              </div>
-              <p style={{ fontSize: 30, lineHeight: 1.4, margin: 0, color: "var(--body-dark-2)" }}>{s.label}</p>
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <Rule tone={t} weight="1" color={t.rule} style={{ marginBottom: 44 }} />
+              <Stat
+                value={str(s.value)}
+                unit={str(s.unit)}
+                size={figure}
+                // The first figure carries the accent; the rest stay neutral, so
+                // the row has a focal point instead of three equal shouts.
+                color={i === 0 ? t.accent : t.title}
+              />
+              <p style={{ fontSize: TYPE.h6, lineHeight: 1.4, margin: 0, color: t.bodyStrong }}>{s.label}</p>
               {s.source && (
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, letterSpacing: 3, color: "var(--warm-gray)" }}>{s.source}</div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: TYPE.kicker,
+                    letterSpacing: 3,
+                    color: t.muted,
+                  }}
+                >
+                  {s.source}
+                </div>
               )}
             </div>
           ))}
         </div>
         {str(f.takeaway) && (
-          <p style={{ fontSize: 36, lineHeight: 1.4, margin: 0, fontFamily: "var(--font-title)", fontWeight: 500 }}>
+          <p
+            style={{
+              fontSize: TYPE.h5,
+              lineHeight: 1.4,
+              margin: "var(--s6) 0 0",
+              fontFamily: "var(--font-title)",
+              fontWeight: 500,
+              color: t.title,
+            }}
+          >
             {parseAccents(str(f.takeaway))}
           </p>
         )}
       </Stage>
     );
   },
-  expand: (f) => {
+  expand: (f, ctx) => {
+    const t = tone(ctx.background);
     const stats = rows(f.stats);
+    const n = Math.max(stats.length, 1);
+    const figure = n === 1 ? TYPE.stat + 60 : n === 2 ? TYPE.stat : TYPE.stat - 40;
     const els: SlideElement[] = [
-      { id: uid("el"), type: "text", x: 120, y: 100, w: 1000, h: 32, rotation: 0, fieldKey: "kicker",
-        style: { fontFamily: "var(--font-mono)", fontSize: 24, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: "var(--coral)" }, content: str(f.kicker) },
-      { id: uid("el"), type: "text", x: 120, y: 150, w: 1400, h: 90, rotation: 0, fieldKey: "title",
-        style: { fontFamily: "var(--font-title)", fontSize: 72, fontWeight: 600, letterSpacing: -2, lineHeight: 1.08, color: "var(--cream)" }, content: str(f.title) },
+      { id: uid("el"), type: "text", x: 130, y: 100, w: 1000, h: 32, rotation: 0, fieldKey: "kicker",
+        style: { fontFamily: "var(--font-mono)", fontSize: TYPE.kicker, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: t.accent }, content: str(f.kicker) },
+      { id: uid("el"), type: "text", x: 130, y: 160, w: 1400, h: 90, rotation: 0, fieldKey: "title",
+        style: { fontFamily: "var(--font-title)", fontSize: TYPE.h2, fontWeight: 600, letterSpacing: titleTracking(TYPE.h2), lineHeight: 1.08, color: t.title }, content: str(f.title) },
     ];
-    const colW = Math.floor((1680 - 80 * (stats.length - 1)) / Math.max(stats.length, 1));
+    const colW = Math.floor((1660 - 80 * (n - 1)) / n);
     stats.forEach((s, i) => {
-      const x = 120 + i * (colW + 80);
+      const x = 130 + i * (colW + 80);
       els.push(
-        { id: uid("el"), type: "shape", x, y: 300, w: colW, h: 2, rotation: 0, style: { background: "var(--border-dark)" } },
-        { id: uid("el"), type: "text", x, y: 330, w: colW, h: 200, rotation: 0,
-          style: { fontFamily: "var(--font-title)", fontSize: 190, fontWeight: 600, letterSpacing: -6, lineHeight: 0.95, color: i === 0 ? "var(--coral)" : "var(--cream)" }, content: `${s.value ?? ""}${s.unit ?? ""}` },
-        { id: uid("el"), type: "text", x, y: 560, w: colW, h: 50, rotation: 0,
-          style: { fontFamily: "var(--font-body)", fontSize: 30, lineHeight: 1.4, color: "var(--body-dark-2)" }, content: s.label ?? "" },
-        { id: uid("el"), type: "text", x, y: 620, w: colW, h: 34, rotation: 0,
-          style: { fontFamily: "var(--font-mono)", fontSize: 24, letterSpacing: 3, color: "var(--warm-gray)" }, content: s.source ?? "" }
+        { id: uid("el"), type: "shape", x, y: 320, w: colW, h: 2, rotation: 0, style: { background: t.rule } },
+        // Value and unit stay separate elements so the export keeps the size
+        // split DESIGN.md calls for (the unit at about half the figure).
+        { id: uid("el"), type: "text", x, y: 364, w: colW, h: 210, rotation: 0,
+          style: { fontFamily: "var(--font-title)", fontSize: figure, fontWeight: 600, letterSpacing: titleTracking(figure), lineHeight: 0.95, color: i === 0 ? t.accent : t.title }, content: str(s.value) },
+        { id: uid("el"), type: "text", x: x + Math.round(colW * 0.52), y: 372, w: 160, h: 120, rotation: 0,
+          style: { fontFamily: "var(--font-title)", fontSize: Math.round(figure * 0.52), fontWeight: 600, letterSpacing: titleTracking(figure * 0.52), lineHeight: 0.95, color: i === 0 ? t.accent : t.title }, content: str(s.unit) },
+        { id: uid("el"), type: "text", x, y: 596, w: colW, h: 50, rotation: 0,
+          style: { fontFamily: "var(--font-body)", fontSize: TYPE.h6, lineHeight: 1.4, color: t.bodyStrong }, content: str(s.label) },
+        { id: uid("el"), type: "text", x, y: 660, w: colW, h: 34, rotation: 0,
+          style: { fontFamily: "var(--font-mono)", fontSize: TYPE.kicker, letterSpacing: 3, color: t.muted }, content: str(s.source) }
       );
     });
     if (str(f.takeaway)) {
-      els.push({ id: uid("el"), type: "text", x: 120, y: 940, w: 1600, h: 60, rotation: 0, fieldKey: "takeaway",
-        style: { fontFamily: "var(--font-title)", fontSize: 36, fontWeight: 500, lineHeight: 1.4, color: "var(--cream)" }, content: str(f.takeaway) });
+      els.push({ id: uid("el"), type: "text", x: 130, y: 930, w: 1600, h: 60, rotation: 0, fieldKey: "takeaway",
+        style: { fontFamily: "var(--font-title)", fontSize: TYPE.h5, fontWeight: 500, lineHeight: 1.4, color: t.title }, content: str(f.takeaway) });
     }
     return els;
   },

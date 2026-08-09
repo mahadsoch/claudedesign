@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Deck, Slide } from "@/lib/model/deck";
 import { STAGE_W, STAGE_H, uid } from "@/lib/model/deck";
-import type { RenderCtx, TemplateDef } from "@/components/templates/types";
+import type { BaseRenderCtx, TemplateDef } from "@/components/templates/types";
 import { getTemplate } from "@/components/templates/registry";
 import { SlideRenderer } from "@/components/SlideRenderer";
 import { rankTemplates } from "@/lib/ai/suggestTemplates";
 import { DECK_TEMPLATES } from "@/lib/model/executiveReview";
 
 /** A live, scaled-down render of a template's default slide. */
-function TemplatePreview({ template, ctx }: { template: TemplateDef; ctx: RenderCtx }) {
+function TemplatePreview({ template, ctx }: { template: TemplateDef; ctx: BaseRenderCtx }) {
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.18);
   useEffect(() => {
@@ -44,7 +44,7 @@ export function TemplateGallery({
   onInsert,
   onUseDeck,
 }: {
-  ctx: RenderCtx;
+  ctx: BaseRenderCtx;
   onClose: () => void;
   onInsert: (templateId: string) => void;
   onUseDeck: (deck: Deck) => void;

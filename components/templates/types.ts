@@ -7,7 +7,12 @@ import type { Background, FieldValue, SlideElement } from "@/lib/model/deck";
 // template gets its editor UI for free. Guardrails (maxLength, maxItems) live
 // here, keeping brand safety declarative.
 
-export type FieldType = "text" | "textarea" | "image" | "list";
+export type FieldType = "text" | "textarea" | "image" | "list" | "select";
+
+export interface FieldOption {
+  value: string;
+  label: string;
+}
 
 export interface FieldDef {
   key: string;
@@ -23,6 +28,12 @@ export interface FieldDef {
    * omitted means a plain image uploader.
    */
   picker?: "icon";
+  /**
+   * For `select` fields: the allowed values. The Inspector renders a dropdown
+   * and `validateDeck` coerces anything else back to `options[0].value`, so a
+   * template can branch on the value without defensive parsing.
+   */
+  options?: FieldOption[];
   // list-only:
   itemFields?: FieldDef[];
   itemLabel?: string; // singular, e.g. "Item", "Stat"
@@ -37,7 +48,25 @@ export interface RenderCtx {
    *  - blob refs ("blob:<id>") → object URL (client) or inlined data URL (PDF)
    */
   resolveImage: (ref: string | undefined) => string | undefined;
+  /**
+   * The background this slide is actually being rendered on. A template must
+   * pass this to its `Stage` and derive its colours from `tone(ctx.background)`
+   * rather than hard-coding tokens — that is what makes every template legible
+   * on ink, cream and coral, and what makes the deck's background rhythm real.
+   */
+  background: Background;
+  /** 1-based position in the deck, for `SlideFooter`. Absent in previews. */
+  slideNumber?: number;
+  /** Total slides in the deck, for `SlideFooter`. Absent in previews. */
+  slideCount?: number;
 }
+
+/**
+ * What a *carrier* holds — the editor, the print page, the gallery. The
+ * per-slide parts (`background`, `slideNumber`, `slideCount`) are filled in by
+ * `SlideRenderer` from the slide itself, so no caller has to thread them.
+ */
+export type BaseRenderCtx = Omit<RenderCtx, "background" | "slideNumber" | "slideCount">;
 
 // ── Template definition ─────────────────────────────────────────────────────
 export interface TemplateDef {

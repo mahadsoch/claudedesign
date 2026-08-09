@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Slide } from "@/lib/model/deck";
 import { STAGE_W, STAGE_H } from "@/lib/model/deck";
-import type { RenderCtx } from "@/components/templates/types";
+import type { BaseRenderCtx } from "@/components/templates/types";
 import { SlideRenderer } from "@/components/SlideRenderer";
 import { CanvasStage } from "@/components/canvas/CanvasStage";
 import { ElementToolbar } from "@/components/canvas/ElementToolbar";
@@ -11,7 +11,17 @@ import { useDeck } from "@/lib/state/deckStore";
 
 /** Renders a slide at true 1920×1080, scaled to fit. Detached slides render the
  *  interactive CanvasStage; template slides render the static SlideRenderer. */
-export function PreviewStage({ slide, ctx }: { slide: Slide; ctx: RenderCtx }) {
+export function PreviewStage({
+  slide,
+  ctx,
+  slideNumber,
+  slideCount,
+}: {
+  slide: Slide;
+  ctx: BaseRenderCtx;
+  slideNumber?: number;
+  slideCount?: number;
+}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.4);
   const selectElements = useDeck((s) => s.selectElements);
@@ -57,7 +67,12 @@ export function PreviewStage({ slide, ctx }: { slide: Slide; ctx: RenderCtx }) {
           {detached ? (
             <CanvasStage slide={slide} scale={scale} ctx={ctx} />
           ) : (
-            <SlideRenderer slide={slide} ctx={ctx} />
+            <SlideRenderer
+              slide={slide}
+              ctx={ctx}
+              slideNumber={slideNumber}
+              slideCount={slideCount}
+            />
           )}
         </div>
       </div>

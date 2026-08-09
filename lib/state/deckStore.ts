@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { Deck, Slide, FieldValue, SlideElement } from "@/lib/model/deck";
+import type { Deck, Slide, FieldValue, SlideElement, Background } from "@/lib/model/deck";
 import { uid } from "@/lib/model/deck";
 import { getTemplate } from "@/components/templates/registry";
 import { seedDeck } from "@/lib/model/seed";
@@ -39,6 +39,7 @@ interface DeckState {
   deleteSlide: (id: string) => void;
   duplicateSlide: (id: string) => void;
   moveSlide: (id: string, dir: -1 | 1) => void;
+  setSlideBackground: (id: string, background: Background) => void;
 
   setField: (slideId: string, key: string, value: FieldValue) => void;
   setListItem: (slideId: string, key: string, index: number, itemKey: string, value: string) => void;
@@ -200,6 +201,9 @@ export const useDeck = create<DeckState>((set, get) => {
       withDeck((d) => ({ ...d, slides }));
     },
 
+    setSlideBackground: (id, background) =>
+      withDeck((d) => mapSlides(d, id, (sl) => ({ ...sl, background }))),
+
     setField: (slideId, key, value) =>
       withDeck(
         (d) => mapSlides(d, slideId, (sl) => ({ ...sl, fields: { ...sl.fields, [key]: value } })),
@@ -249,7 +253,10 @@ export const useDeck = create<DeckState>((set, get) => {
       if (!slide || slide.elements?.length) return;
       const tpl = getTemplate(slide.template);
       if (!tpl?.expand) return;
-      const elements = tpl.expand(slide.fields, { resolveImage: (r) => r });
+      const elements = tpl.expand(slide.fields, {
+        resolveImage: (r) => r,
+        background: slide.background,
+      });
       withDeck((d) => mapSlides(d, slideId, (sl) => ({ ...sl, elements })));
       set({ selectedElementIds: [] });
     },

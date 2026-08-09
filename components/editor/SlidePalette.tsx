@@ -1,10 +1,10 @@
 "use client";
 
 import { useDeck } from "@/lib/state/deckStore";
-import type { RenderCtx } from "@/components/templates/types";
+import type { BaseRenderCtx } from "@/components/templates/types";
 import { SlideThumb } from "./SlideThumb";
 
-export function SlidePalette({ ctx, onBrowse }: { ctx: RenderCtx; onBrowse: () => void }) {
+export function SlidePalette({ ctx, onBrowse }: { ctx: BaseRenderCtx; onBrowse: () => void }) {
   const deck = useDeck((s) => s.deck);
   const selectedId = useDeck((s) => s.selectedId);
   const select = useDeck((s) => s.select);

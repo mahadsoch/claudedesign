@@ -1,9 +1,9 @@
 import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
-import { Stage, SectionHead, Kicker } from "./_shared/primitives";
+import { Stage, SectionHead, Kicker, Panel, Rule, Stat, parseAccents, tone, TYPE } from "./_shared/primitives";
 
-// "The Context" slide: a situation narrative on the left, a coral-wash stat
-// rail on the right stacking a few by-the-numbers figures.
+// "The Context" slide: a situation narrative on the left against a full-height
+// accent rail, a stat panel on the right.
 export const contextStatRail: TemplateDef = {
   id: "context-stat-rail",
   name: "Context + stat rail",
@@ -44,47 +44,63 @@ export const contextStatRail: TemplateDef = {
       { value: "3 Qtrs", label: "before the roadmap extends across the company" },
     ],
   }),
-  render: (f) => {
+  render: (f, ctx) => {
+    const t = tone(ctx.background);
     const stats = rows(f.stats);
     const bodies = [str(f.body1), str(f.body2), str(f.body3)].filter(Boolean);
     return (
-      <Stage background="cream" style={{ padding: "90px 130px", display: "flex", flexDirection: "column" }}>
-        <SectionHead kicker={str(f.kicker)} title={str(f.title)} />
-        <div style={{ marginTop: 56, flex: 1, display: "flex", gap: 90, minHeight: 0 }}>
-          <div style={{ flex: 1.1, minWidth: 0 }}>
-            {str(f.situationLabel) && (
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, letterSpacing: 3, fontWeight: 600, textTransform: "uppercase", color: "var(--ink)", paddingBottom: 24, borderLeft: "2px solid var(--coral)", paddingLeft: 22 }}>
-                {str(f.situationLabel)}
-              </div>
-            )}
-            <div style={{ display: "flex", flexDirection: "column", gap: 26, paddingLeft: 24 }}>
+      <Stage background={ctx.background} style={{ display: "flex", flexDirection: "column" }}>
+        <SectionHead kicker={str(f.kicker)} title={str(f.title)} tone={t} />
+        <div style={{ marginTop: "var(--s6)", flex: 1, display: "flex", gap: 90, minHeight: 0 }}>
+          {/* The rail runs the full height of the narrative, not just the label
+              — as a stub it read as a stray mark rather than as structure. */}
+          <div style={{ flex: 1.1, minWidth: 0, display: "flex", gap: 24 }}>
+            <Rule tone={t} weight="1" color={t.accent} vertical />
+            <div style={{ display: "flex", flexDirection: "column", gap: 26, minWidth: 0 }}>
+              {str(f.situationLabel) && (
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: TYPE.bodySm,
+                    letterSpacing: 3,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    color: t.title,
+                  }}
+                >
+                  {str(f.situationLabel)}
+                </div>
+              )}
               {bodies.map((b, i) => (
-                <p key={i} style={{ fontSize: 28, lineHeight: 1.5, margin: 0, color: i === 0 ? "var(--ink)" : "var(--body-light)" }}>
-                  {b.split(/(\[\[.+?\]\])/).map((seg, j) =>
-                    seg.startsWith("[[") ? (
-                      <b key={j} style={{ color: "var(--coral)" }}>{seg.slice(2, -2)}</b>
-                    ) : (
-                      seg
-                    )
-                  )}
+                <p
+                  key={i}
+                  style={{
+                    fontSize: TYPE.h6 - 2,
+                    lineHeight: 1.5,
+                    margin: 0,
+                    // Emphasis decays down the column: the first paragraph is
+                    // the claim, the rest are support.
+                    color: i === 0 ? t.bodyStrong : t.body,
+                  }}
+                >
+                  {parseAccents(b)}
                 </p>
               ))}
             </div>
           </div>
 
-          <div style={{ flex: "0 0 560px", background: "var(--coral-wash)", borderRadius: 24, padding: "48px 52px", display: "flex", flexDirection: "column" }}>
+          <Panel tone={t} style={{ flex: "0 0 560px", padding: "48px 52px" }}>
             <Kicker>{str(f.statsLabel)}</Kicker>
-            <div style={{ marginTop: 20, display: "flex", flexDirection: "column" }}>
+            <div style={{ marginTop: 20, display: "flex", flexDirection: "column", flex: 1 }}>
               {stats.map((s, i) => (
-                <div key={i} style={{ padding: "26px 0", borderTop: i === 0 ? "none" : "1px solid rgba(20,20,20,0.12)" }}>
-                  <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 66, letterSpacing: -2, color: "var(--coral)", lineHeight: 1 }}>
-                    {s.value}
-                  </div>
-                  <div style={{ fontSize: 24, color: "var(--body-light)", marginTop: 10 }}>{s.label}</div>
+                <div key={i} style={{ padding: "26px 0", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  {i > 0 && <Rule tone={t} style={{ marginTop: -26, marginBottom: 26 }} />}
+                  <Stat value={str(s.value)} size={TYPE.statSm - 10} color={t.accent} />
+                  <div style={{ fontSize: TYPE.bodySm + 2, color: t.body, marginTop: 10 }}>{s.label}</div>
                 </div>
               ))}
             </div>
-          </div>
+          </Panel>
         </div>
       </Stage>
     );

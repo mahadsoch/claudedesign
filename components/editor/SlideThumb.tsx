@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Slide } from "@/lib/model/deck";
 import { STAGE_W, STAGE_H } from "@/lib/model/deck";
-import type { RenderCtx } from "@/components/templates/types";
+import type { BaseRenderCtx } from "@/components/templates/types";
 import { SlideRenderer } from "@/components/SlideRenderer";
 
 /** A tiny scaled render of a slide for the palette rail. */
@@ -17,7 +17,7 @@ export function SlideThumb({
   slide: Slide;
   index: number;
   active: boolean;
-  ctx: RenderCtx;
+  ctx: BaseRenderCtx;
   onClick: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
