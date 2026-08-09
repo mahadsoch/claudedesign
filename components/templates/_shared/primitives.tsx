@@ -789,14 +789,18 @@ export function Portrait({
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
+  // The monogram frame has to separate from the field it sits on. On coral,
+  // `t.panel` is only a shade off the background, so the frame would vanish.
+  const fill =
+    t.bg === "cream" ? "var(--coral-wash)" : t.bg === "coral" ? "var(--cream)" : "var(--ink-raised)";
   return (
     <div
       style={{
         width: "100%",
         height: "100%",
         borderRadius: radius,
-        background: t.bg === "cream" ? "var(--coral-wash)" : t.panel,
-        color: t.accent,
+        background: fill,
+        color: t.bg === "coral" ? "var(--coral)" : t.accent,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

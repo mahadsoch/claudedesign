@@ -108,3 +108,14 @@ export const str = (v: FieldValue | undefined, fallback = ""): string =>
 
 export const rows = (v: FieldValue | undefined): Record<string, string>[] =>
   Array.isArray(v) ? (v as Record<string, string>[]) : [];
+
+/**
+ * Pull the leading number out of a display string, so a chart can be driven by
+ * the same field the audience reads: "€180k" → 180, "-42%" → -42, "1 in 4" → 1.
+ * Returns `fallback` when there is no number to find.
+ */
+export const numOf = (v: string | undefined, fallback = 0): number => {
+  if (!v) return fallback;
+  const m = v.replace(/[,\s]/g, "").match(/-?\d+(\.\d+)?/);
+  return m ? Number(m[0]) : fallback;
+};

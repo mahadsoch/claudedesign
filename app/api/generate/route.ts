@@ -85,7 +85,11 @@ Return ONLY JSON: { "meta": { "title": string }, "slides": [ { "intent": string,
 CONTENT TYPES:
 ${contentTypeMenu()}
 
-Rules: open with a "cover" slide and close with "nextsteps" or "closing". Pick the most SPECIFIC content type for each beat (e.g. pricing, roadmap, team, results, comparison) rather than defaulting to generic lists. Vary the content types. For a proposal / executive-review brief a strong spine is: cover → agenda → context → problem → approach → features → impact → roadmap → pricing → team → nextsteps, adapted to the brief.
+Rules: open with a "cover" slide and close with "nextsteps" or "closing". Pick the most SPECIFIC content type for each beat rather than defaulting to generic lists — if a beat is really a set of numbers use "chart" or "proportion", if it compares options across criteria use "matrix", if it is a transformation use "beforeafter", if it is scope or terms use "scope".
+
+Vary the content types, and vary the *shape* of the deck: in anything longer than eight slides include at least one "section" divider and at least one of "quote" / "statement" / "testimonial" as a breath between argument slides. Never run more than three consecutive slides of the same kind of density.
+
+For a proposal / executive-review brief a strong spine is: cover → agenda → context → problem → section → approach → features → chart → impact → quote → roadmap → pricing → team → nextsteps, adapted to the brief.
 
 No prose, no markdown fences.`;
 

@@ -19,21 +19,29 @@ export interface ContentType {
 export const CONTENT_TYPES: ContentType[] = [
   { id: "cover", label: "Opening title / cover slide", templates: ["title-hero", "cover-card"] },
   { id: "agenda", label: "Agenda or table of contents", templates: ["agenda-list", "agenda-2x2"] },
+  { id: "section", label: "A chapter break between sections of the deck", templates: ["section-divider", "image-full-bleed"] },
   { id: "context", label: "Context / where things stand today, with a few figures", templates: ["context-stat-rail", "big-stats"] },
   { id: "problem", label: "A problem framed as a few parallel points", templates: ["three-columns", "content-list-figures"] },
   { id: "approach", label: "The approach as phased stages", templates: ["process-stages", "step-timeline"] },
   { id: "features", label: "Capabilities / what's covered / reasons", templates: ["feature-grid", "content-list-figures"] },
   { id: "metrics", label: "One or a few big headline metrics", templates: ["big-stats", "quadrant-highlight"] },
+  { id: "chart", label: "Quantities to compare as a chart — shares, volumes, a ranking", templates: ["data-bars", "big-stats"] },
+  { id: "proportion", label: "Percentages or completion rates shown as rings", templates: ["data-donut", "data-bars"] },
   { id: "impact", label: "Outcomes plus the single metric to chase", templates: ["impact-highlight", "content-list-figures"] },
   { id: "framework", label: "A 2×2 or positioning framework", templates: ["matrix-2x2", "quadrant-highlight"] },
-  { id: "comparison", label: "Two options, or before vs after", templates: ["two-column-compare"] },
+  { id: "comparison", label: "Two options compared", templates: ["two-column-compare", "comparison-table"] },
+  { id: "matrix", label: "Several options compared across capability rows", templates: ["comparison-table", "two-column-compare"] },
+  { id: "beforeafter", label: "A transformation — the old state versus the new one", templates: ["before-after", "two-column-compare"] },
+  { id: "scope", label: "Scope, deliverables, assumptions or terms as a table", templates: ["spec-table", "content-list-figures"] },
   { id: "results", label: "Client results / case studies", templates: ["results-numbers", "big-stats"] },
+  { id: "testimonial", label: "An attributed client quote with a name and a result", templates: ["quote-portrait", "pull-quote"] },
   { id: "roadmap", label: "A phased roadmap / rollout over time", templates: ["roadmap-phases", "process-stages"] },
   { id: "logos", label: "Logos, tools, or integrations", templates: ["logo-stack-grid"] },
   { id: "pricing", label: "Pricing / investment tiers", templates: ["pricing-tiers"] },
   { id: "principles", label: "Operating principles / how we work", templates: ["operating-principle"] },
   { id: "quote", label: "A single strong quote or belief", templates: ["pull-quote", "statement"] },
   { id: "statement", label: "A bold one-line statement / anchor moment", templates: ["statement", "pull-quote"] },
+  { id: "visual", label: "A full-bleed image moment / a visual pause", templates: ["image-full-bleed", "section-divider"] },
   { id: "bio", label: "Spotlight on one person", templates: ["featured-bio"] },
   { id: "team", label: "The team / people roster", templates: ["team-grid"] },
   { id: "nextsteps", label: "Next steps / the path to kickoff", templates: ["step-timeline", "contact-cta"] },
@@ -108,9 +116,19 @@ export function chooseTemplates(beats: PlanBeat[]): string[] {
 // consecutive cream ones, with no coral anywhere.
 
 /** Content types that *are* the emotional beat, and belong on coral. */
-const CORAL_TYPES = new Set(["quote", "principles"]);
+const CORAL_TYPES = new Set(["quote", "principles", "testimonial"]);
 /** Content types that anchor the deck, and belong on ink. */
-const DARK_TYPES = new Set(["cover", "statement", "metrics", "results", "closing", "comparison"]);
+const DARK_TYPES = new Set([
+  "cover",
+  "statement",
+  "section",
+  "visual",
+  "metrics",
+  "proportion",
+  "results",
+  "closing",
+  "comparison",
+]);
 
 const MAX_CREAM_RUN = 2;
 
