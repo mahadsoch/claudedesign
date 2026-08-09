@@ -1,7 +1,5 @@
 import type { TemplateDef } from "./types";
 import { str } from "./types";
-import { uid } from "@/lib/model/deck";
-import type { SlideElement } from "@/lib/model/deck";
 import { Stage, Kicker, ImageBox, Rule, parseAccents, tone, TYPE, titleTracking } from "./_shared/primitives";
 
 // A photograph filling the whole stage, with the type held in a scrim panel.
@@ -119,26 +117,5 @@ export const imageFullBleed: TemplateDef = {
         </div>
       </Stage>
     );
-  },
-  expand: (f, ctx): SlideElement[] => {
-    const t = tone(ctx.background);
-    const left = str(f.position, "left") === "left";
-    const scrim = ctx.background === "cream" ? "rgba(252,245,235,0.94)" : "rgba(20,20,20,0.90)";
-    const x = left ? 130 : 130;
-    const y = left ? 380 : 760;
-    const size = left ? TYPE.h2 : TYPE.h3;
-    return [
-      { id: uid("el"), type: "image", x: 0, y: 0, w: 1920, h: 1080, rotation: 0, style: { objectFit: "cover" }, content: str(f.image) },
-      left
-        ? { id: uid("el"), type: "shape", x: 0, y: 0, w: 880, h: 1080, rotation: 0, style: { background: scrim } }
-        : { id: uid("el"), type: "shape", x: 0, y: 700, w: 1920, h: 380, rotation: 0, style: { background: scrim } },
-      { id: uid("el"), type: "text", x, y: y - 60, w: 700, h: 34, rotation: 0, fieldKey: "kicker",
-        style: { fontFamily: "var(--font-mono)", fontSize: TYPE.kicker, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: t.accent }, content: str(f.kicker) },
-      { id: uid("el"), type: "text", x, y, w: left ? 640 : 1300, h: 220, rotation: 0, fieldKey: "title",
-        style: { fontFamily: "var(--font-title)", fontSize: size, fontWeight: 600, letterSpacing: titleTracking(size), lineHeight: 1.05, color: t.title }, content: str(f.title) },
-      { id: uid("el"), type: "shape", x, y: y + 250, w: 96, h: 3, rotation: 0, style: { background: t.accent } },
-      { id: uid("el"), type: "text", x, y: y + 290, w: left ? 640 : 1000, h: 80, rotation: 0, fieldKey: "caption",
-        style: { fontFamily: "var(--font-body)", fontSize: TYPE.h6 - 2, lineHeight: 1.5, color: t.body }, content: str(f.caption) },
-    ];
   },
 };

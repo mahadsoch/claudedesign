@@ -1,7 +1,5 @@
 import type { TemplateDef } from "./types";
 import { str } from "./types";
-import { uid } from "@/lib/model/deck";
-import type { SlideElement } from "@/lib/model/deck";
 import { Stage, Kicker, AccentTitle, ImageBox, Logo, Button, tone, TYPE, titleTracking } from "./_shared/primitives";
 
 // The closing bookend to `title-hero`: same lockup, same bleed, same coral mark
@@ -88,26 +86,5 @@ export const contactCta: TemplateDef = {
         </div>
       </Stage>
     );
-  },
-  expand: (f, ctx): SlideElement[] => {
-    const t = tone(ctx.background);
-    const size = TYPE.h1 + 4;
-    return [
-      { id: uid("el"), type: "image", x: 130, y: 90, w: 180, h: 52, rotation: 0, style: { objectFit: "contain" }, content: "/assets/soch-logo.png" },
-      { id: uid("el"), type: "text", x: 130, y: 470, w: 1000, h: 34, rotation: 0, fieldKey: "kicker",
-        style: { fontFamily: "var(--font-mono)", fontSize: TYPE.kicker, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: t.accent }, content: str(f.kicker) },
-      { id: uid("el"), type: "text", x: 130, y: 528, w: 1000, h: 200, rotation: 0, fieldKey: "title",
-        // Tracking comes from the shared ramp, so this can no longer drift from
-        // what `render` produces.
-        style: { fontFamily: "var(--font-title)", fontSize: size, fontWeight: 600, letterSpacing: titleTracking(size), lineHeight: 1.05, color: t.title }, content: str(f.title) },
-      { id: uid("el"), type: "text", x: 130, y: 760, w: 900, h: 50, rotation: 0, fieldKey: "subtitle",
-        style: { fontFamily: "var(--font-body)", fontSize: TYPE.h6 + 2, lineHeight: 1.5, color: t.body }, content: str(f.subtitle) },
-      { id: uid("el"), type: "text", x: 130, y: 840, w: 320, h: 76, rotation: 0, fieldKey: "ctaLabel",
-        style: { fontFamily: "var(--font-title)", fontSize: 28, fontWeight: 600, background: t.accent, color: t.onAccent, borderRadius: 999, textAlign: "center", padding: "22px 20px" }, content: str(f.ctaLabel) },
-      { id: uid("el"), type: "text", x: 480, y: 862, w: 700, h: 40, rotation: 0, fieldKey: "contact",
-        style: { fontFamily: "var(--font-mono)", fontSize: TYPE.body - 1, letterSpacing: 1, color: t.bodyStrong }, content: str(f.contact) },
-      { id: uid("el"), type: "image", x: 1220, y: 0, w: 700, h: 1080, rotation: 0, style: { objectFit: "cover" }, content: str(f.image) },
-      { id: uid("el"), type: "shape", x: 1198, y: 886, w: 44, h: 44, rotation: 0, style: { background: t.accent, borderRadius: 9999 } },
-    ];
   },
 };

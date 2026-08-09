@@ -1,8 +1,6 @@
 import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
-import { uid } from "@/lib/model/deck";
 import { Stage, Kicker, Rule, Stat, parseAccents, tone, TYPE, titleTracking } from "./_shared/primitives";
-import type { SlideElement } from "@/lib/model/deck";
 
 export const bigStats: TemplateDef = {
   id: "big-stats",
@@ -117,39 +115,5 @@ export const bigStats: TemplateDef = {
         )}
       </Stage>
     );
-  },
-  expand: (f, ctx) => {
-    const t = tone(ctx.background);
-    const stats = rows(f.stats);
-    const n = Math.max(stats.length, 1);
-    const figure = n === 1 ? TYPE.stat + 60 : n === 2 ? TYPE.stat : TYPE.stat - 40;
-    const els: SlideElement[] = [
-      { id: uid("el"), type: "text", x: 130, y: 100, w: 1000, h: 32, rotation: 0, fieldKey: "kicker",
-        style: { fontFamily: "var(--font-mono)", fontSize: TYPE.kicker, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: t.accent }, content: str(f.kicker) },
-      { id: uid("el"), type: "text", x: 130, y: 160, w: 1400, h: 90, rotation: 0, fieldKey: "title",
-        style: { fontFamily: "var(--font-title)", fontSize: TYPE.h2, fontWeight: 600, letterSpacing: titleTracking(TYPE.h2), lineHeight: 1.08, color: t.title }, content: str(f.title) },
-    ];
-    const colW = Math.floor((1660 - 80 * (n - 1)) / n);
-    stats.forEach((s, i) => {
-      const x = 130 + i * (colW + 80);
-      els.push(
-        { id: uid("el"), type: "shape", x, y: 320, w: colW, h: 2, rotation: 0, style: { background: t.rule } },
-        // Value and unit stay separate elements so the export keeps the size
-        // split DESIGN.md calls for (the unit at about half the figure).
-        { id: uid("el"), type: "text", x, y: 364, w: colW, h: 210, rotation: 0,
-          style: { fontFamily: "var(--font-title)", fontSize: figure, fontWeight: 600, letterSpacing: titleTracking(figure), lineHeight: 0.95, color: i === 0 ? t.accent : t.title }, content: str(s.value) },
-        { id: uid("el"), type: "text", x: x + Math.round(colW * 0.52), y: 372, w: 160, h: 120, rotation: 0,
-          style: { fontFamily: "var(--font-title)", fontSize: Math.round(figure * 0.52), fontWeight: 600, letterSpacing: titleTracking(figure * 0.52), lineHeight: 0.95, color: i === 0 ? t.accent : t.title }, content: str(s.unit) },
-        { id: uid("el"), type: "text", x, y: 596, w: colW, h: 50, rotation: 0,
-          style: { fontFamily: "var(--font-body)", fontSize: TYPE.h6, lineHeight: 1.4, color: t.bodyStrong }, content: str(s.label) },
-        { id: uid("el"), type: "text", x, y: 660, w: colW, h: 34, rotation: 0,
-          style: { fontFamily: "var(--font-mono)", fontSize: TYPE.kicker, letterSpacing: 3, color: t.muted }, content: str(s.source) }
-      );
-    });
-    if (str(f.takeaway)) {
-      els.push({ id: uid("el"), type: "text", x: 130, y: 930, w: 1600, h: 60, rotation: 0, fieldKey: "takeaway",
-        style: { fontFamily: "var(--font-title)", fontSize: TYPE.h5, fontWeight: 500, lineHeight: 1.4, color: t.title }, content: str(f.takeaway) });
-    }
-    return els;
   },
 };

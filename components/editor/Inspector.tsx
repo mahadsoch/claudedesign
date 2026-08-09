@@ -8,7 +8,7 @@ import type { Background } from "@/lib/model/deck";
 import { storeUpload, resolveImageSync } from "@/lib/persistence/imageStore";
 import { ICON_PREFIX, iconNames, renderIcon } from "@/lib/icons/iconSet";
 
-export function Inspector() {
+export function Inspector({ onSwapLayout }: { onSwapLayout?: () => void }) {
   const deck = useDeck((s) => s.deck);
   const selectedId = useDeck((s) => s.selectedId);
   const slide = deck.slides.find((s) => s.id === selectedId);
@@ -41,6 +41,17 @@ export function Inspector() {
         </button>
       </div>
 
+      {onSwapLayout && (
+        <button
+          className="btn"
+          style={{ width: "100%", marginBottom: 16 }}
+          title="Pick a different template for this slide, keeping the content"
+          onClick={onSwapLayout}
+        >
+          ⇄ Swap layout
+        </button>
+      )}
+
       <BackgroundPicker slideId={slide.id} value={slide.background} />
 
       {detached ? (
@@ -54,15 +65,16 @@ export function Inspector() {
         </div>
       ) : (
         <>
-          {tpl?.expand && (
-            <button
-              className="btn"
-              style={{ width: "100%", marginBottom: 16 }}
-              onClick={() => detach(slide.id)}
-            >
-              ✎ Detach to canvas (freeform)
-            </button>
-          )}
+          {/* Every template can detach now — the canvas elements are measured
+              from the render, not hand-written per template. */}
+          <button
+            className="btn"
+            style={{ width: "100%", marginBottom: 16 }}
+            title="Break this slide into free elements you can move, resize and restyle"
+            onClick={() => detach(slide.id)}
+          >
+            ✎ Detach to canvas (freeform)
+          </button>
           {tpl?.fields.map((f) => (
             <Field key={f.key} slideId={slide.id} def={f} />
           ))}

@@ -1,7 +1,5 @@
 import type { TemplateDef } from "./types";
 import { str } from "./types";
-import { uid } from "@/lib/model/deck";
-import type { SlideElement } from "@/lib/model/deck";
 import { Stage, Rule, tone, TYPE, titleTracking } from "./_shared/primitives";
 
 export const pullQuote: TemplateDef = {
@@ -78,19 +76,5 @@ export const pullQuote: TemplateDef = {
         )}
       </Stage>
     );
-  },
-  // Positions mirror the centred flow for a three-line quote, so detaching does
-  // not visibly jump the slide.
-  expand: (f, ctx): SlideElement[] => {
-    const t = tone(ctx.background);
-    return [
-      { id: uid("el"), type: "text", x: 130, y: 250, w: 400, h: 200, rotation: 0,
-        style: { fontFamily: "var(--font-title)", fontSize: 300, fontWeight: 700, lineHeight: 0.6, color: t.title, opacity: 0.35 }, content: "“" },
-      { id: uid("el"), type: "text", x: 130, y: 400, w: 1400, h: 420, rotation: 0, fieldKey: "quote",
-        style: { fontFamily: "var(--font-title)", fontSize: TYPE.display, fontWeight: 600, letterSpacing: titleTracking(TYPE.display), lineHeight: 1.05, color: t.title }, content: str(f.quote) },
-      { id: uid("el"), type: "shape", x: 130, y: 856, w: 72, h: 3, rotation: 0, style: { background: t.ruleStrong } },
-      { id: uid("el"), type: "text", x: 230, y: 838, w: 900, h: 90, rotation: 0, fieldKey: "attribution",
-        style: { fontFamily: "var(--font-body)", fontSize: TYPE.h6, lineHeight: 1.5, color: t.bodyStrong }, content: str(f.attribution) },
-    ];
   },
 };

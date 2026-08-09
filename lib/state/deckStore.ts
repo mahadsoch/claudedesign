@@ -1,6 +1,8 @@
 "use client";
 
 import { create } from "zustand";
+import type { ReactElement } from "react";
+import { expandFromDom } from "@/lib/canvas/expandFromDom";
 import type { Deck, Slide, FieldValue, SlideElement, Background } from "@/lib/model/deck";
 import { uid } from "@/lib/model/deck";
 import { getTemplate } from "@/components/templates/registry";
@@ -39,7 +41,31 @@ interface DeckState {
   deleteSlide: (id: string) => void;
   duplicateSlide: (id: string) => void;
   moveSlide: (id: string, dir: -1 | 1) => void;
+  /** Drag-reorder: move the slide at `from` to index `to`. */
+  reorderSlide: (from: number, to: number) => void;
   setSlideBackground: (id: string, background: Background) => void;
+  /**
+   * Swap a slide's layout in place, carrying over every field the new template
+   * also declares. Without this, changing layout means deleting the slide and
+   * retyping its content.
+   */
+  setSlideTemplate: (id: string, templateId: string) => void;
+
+  // ── Multi-slide selection ───────────────────────────────────────────────
+  /** Slides selected in the filmstrip. Always contains `selectedId` when set. */
+  selectedIds: string[];
+  selectSlides: (ids: string[]) => void;
+  /** Shift/⌘-click: add or remove one slide from the selection. */
+  toggleSlideSelected: (id: string) => void;
+  /** Extend the selection from the active slide to `id` (shift-click a range). */
+  selectSlideRange: (id: string) => void;
+  deleteSlides: (ids: string[]) => void;
+  duplicateSlides: (ids: string[]) => void;
+
+  // ── Clipboard ───────────────────────────────────────────────────────────
+  clipboard: Slide[];
+  copySlides: (ids: string[]) => void;
+  pasteSlides: () => void;
 
   setField: (slideId: string, key: string, value: FieldValue) => void;
   setListItem: (slideId: string, key: string, index: number, itemKey: string, value: string) => void;
@@ -68,6 +94,32 @@ interface DeckState {
 
 const HISTORY_CAP = 50;
 const COALESCE_MS = 600;
+
+/**
+ * After stepping through history, the selection may name slides (or elements)
+ * that the restored deck no longer contains — undoing a paste is the obvious
+ * case. Anything that then acts on "the selection" would silently no-op, so the
+ * selection is pruned back to what actually exists.
+ */
+function reconcileSelection(
+  deck: Deck,
+  s: DeckState
+): Pick<DeckState, "selectedId" | "selectedIds" | "selectedElementIds" | "editingElementId"> {
+  const live = new Set(deck.slides.map((sl) => sl.id));
+  const ids = s.selectedIds.filter((id) => live.has(id));
+  const selectedId = s.selectedId && live.has(s.selectedId) ? s.selectedId : (ids[0] ?? deck.slides[0]?.id ?? null);
+  const selectedIds = ids.length ? ids : selectedId ? [selectedId] : [];
+  const slide = deck.slides.find((sl) => sl.id === selectedId);
+  const liveEls = new Set((slide?.elements ?? []).map((e) => e.id));
+  const selectedElementIds = s.selectedElementIds.filter((id) => liveEls.has(id));
+  return {
+    selectedId,
+    selectedIds,
+    selectedElementIds,
+    editingElementId:
+      s.editingElementId && liveEls.has(s.editingElementId) ? s.editingElementId : null,
+  };
+}
 
 // Every deck mutation flows through here, so history + autosave are automatic.
 // Pass a `coalesceKey` for rapid edits (typing) so consecutive same-key changes
@@ -103,6 +155,8 @@ export const useDeck = create<DeckState>((set, get) => {
   return {
     deck: seedDeck(),
     selectedId: null,
+    selectedIds: [],
+    clipboard: [],
     imageVersion: 0,
     hydrated: false,
     past: [],
@@ -114,11 +168,11 @@ export const useDeck = create<DeckState>((set, get) => {
       try {
         const saved = await loadDeck();
         const deck = saved && saved.slides?.length ? saved : seedDeck();
-        set({ deck, selectedId: deck.slides[0]?.id ?? null, hydrated: true, past: [], future: [] });
+        set({ deck, selectedId: deck.slides[0]?.id ?? null, selectedIds: deck.slides[0] ? [deck.slides[0].id] : [], hydrated: true, past: [], future: [] });
         if (!saved) scheduleSave(deck);
       } catch {
         const deck = seedDeck();
-        set({ deck, selectedId: deck.slides[0]?.id ?? null, hydrated: true, past: [], future: [] });
+        set({ deck, selectedId: deck.slides[0]?.id ?? null, selectedIds: deck.slides[0] ? [deck.slides[0].id] : [], hydrated: true, past: [], future: [] });
       }
     },
 
@@ -132,6 +186,7 @@ export const useDeck = create<DeckState>((set, get) => {
           past: s.past.slice(0, -1),
           future: [s.deck, ...s.future].slice(0, HISTORY_CAP),
           _coalesceKey: null,
+          ...reconcileSelection(prev, s),
         };
       }),
 
@@ -145,10 +200,11 @@ export const useDeck = create<DeckState>((set, get) => {
           future: s.future.slice(1),
           past: [...s.past, s.deck].slice(-HISTORY_CAP),
           _coalesceKey: null,
+          ...reconcileSelection(next, s),
         };
       }),
 
-    select: (id) => set({ selectedId: id }),
+    select: (id) => set({ selectedId: id, selectedIds: [id] }),
     setDeckTitle: (title) => withDeck((d) => ({ ...d, meta: { ...d.meta, title } }), "deck-title"),
 
     addSlide: (templateId) => {
@@ -167,7 +223,7 @@ export const useDeck = create<DeckState>((set, get) => {
         ...d,
         slides: [...d.slides.slice(0, at), slide, ...d.slides.slice(at)],
       }));
-      set({ selectedId: slide.id });
+      set({ selectedId: slide.id, selectedIds: [slide.id] });
     },
 
     deleteSlide: (id) => {
@@ -176,7 +232,7 @@ export const useDeck = create<DeckState>((set, get) => {
       const idx = deck.slides.findIndex((s) => s.id === id);
       withDeck((d) => ({ ...d, slides: d.slides.filter((s) => s.id !== id) }));
       const next = deck.slides[idx + 1] ?? deck.slides[idx - 1];
-      if (next) set({ selectedId: next.id });
+      if (next) set({ selectedId: next.id, selectedIds: [next.id] });
     },
 
     duplicateSlide: (id) => {
@@ -188,7 +244,7 @@ export const useDeck = create<DeckState>((set, get) => {
         ...d,
         slides: [...d.slides.slice(0, idx + 1), copy, ...d.slides.slice(idx + 1)],
       }));
-      set({ selectedId: copy.id });
+      set({ selectedId: copy.id, selectedIds: [copy.id] });
     },
 
     moveSlide: (id, dir) => {
@@ -201,8 +257,115 @@ export const useDeck = create<DeckState>((set, get) => {
       withDeck((d) => ({ ...d, slides }));
     },
 
+    reorderSlide: (from, to) => {
+      const { deck } = get();
+      const n = deck.slides.length;
+      if (from === to || from < 0 || from >= n || to < 0 || to >= n) return;
+      withDeck((d) => {
+        const slides = [...d.slides];
+        const [moved] = slides.splice(from, 1);
+        slides.splice(to, 0, moved);
+        return { ...d, slides };
+      });
+    },
+
     setSlideBackground: (id, background) =>
       withDeck((d) => mapSlides(d, id, (sl) => ({ ...sl, background }))),
+
+    setSlideTemplate: (id, templateId) => {
+      const next = getTemplate(templateId);
+      if (!next) return;
+      withDeck((d) =>
+        mapSlides(d, id, (sl) => {
+          if (sl.template === templateId) return sl;
+          const defaults = next.defaults();
+          const fields: Record<string, FieldValue> = { ...defaults };
+          // Carry over anything the new template also declares, by key and by
+          // shape — a `title` stays a title, a list stays a list. Fields the new
+          // template does not have are dropped; ones it has but the old one
+          // lacked come from defaults.
+          for (const def of next.fields) {
+            const prev = sl.fields[def.key];
+            if (prev == null) continue;
+            const prevIsList = Array.isArray(prev);
+            if (prevIsList !== (def.type === "list")) continue;
+            fields[def.key] = prev;
+          }
+          const swapped: Slide = { ...sl, template: templateId, fields };
+          // Freeform overrides belonged to the old layout; keeping them would
+          // silently ignore the swap.
+          delete swapped.elements;
+          return swapped;
+        })
+      );
+      set({ selectedElementIds: [], editingElementId: null });
+    },
+
+    selectSlides: (ids) =>
+      set((s) => ({ selectedIds: ids, selectedId: ids.includes(s.selectedId ?? "") ? s.selectedId : (ids[0] ?? null) })),
+
+    toggleSlideSelected: (id) =>
+      set((s) => {
+        const has = s.selectedIds.includes(id);
+        const ids = has ? s.selectedIds.filter((i) => i !== id) : [...s.selectedIds, id];
+        if (ids.length === 0) return { selectedIds: [id], selectedId: id };
+        return { selectedIds: ids, selectedId: has ? (ids[ids.length - 1] ?? null) : id };
+      }),
+
+    selectSlideRange: (id) => {
+      const { deck, selectedId } = get();
+      const a = deck.slides.findIndex((s) => s.id === selectedId);
+      const b = deck.slides.findIndex((s) => s.id === id);
+      if (a < 0 || b < 0) return;
+      const [lo, hi] = a < b ? [a, b] : [b, a];
+      set({ selectedIds: deck.slides.slice(lo, hi + 1).map((s) => s.id), selectedId: id });
+    },
+
+    deleteSlides: (ids) => {
+      const { deck } = get();
+      const kill = new Set(ids);
+      const remaining = deck.slides.filter((s) => !kill.has(s.id));
+      // The deck must never be emptied — there would be no way back to a slide.
+      if (remaining.length === 0) return;
+      const firstIdx = deck.slides.findIndex((s) => kill.has(s.id));
+      withDeck((d) => ({ ...d, slides: d.slides.filter((s) => !kill.has(s.id)) }));
+      const next = remaining[Math.min(firstIdx, remaining.length - 1)];
+      set({ selectedId: next?.id ?? null, selectedIds: next ? [next.id] : [] });
+    },
+
+    duplicateSlides: (ids) => {
+      const { deck } = get();
+      const keep = new Set(ids);
+      const picked = deck.slides.filter((s) => keep.has(s.id));
+      if (picked.length === 0) return;
+      const copies = picked.map((s) => ({ ...structuredClone(s), id: uid("sl") }));
+      const lastIdx = deck.slides.reduce((acc, s, i) => (keep.has(s.id) ? i : acc), 0);
+      withDeck((d) => ({
+        ...d,
+        slides: [...d.slides.slice(0, lastIdx + 1), ...copies, ...d.slides.slice(lastIdx + 1)],
+      }));
+      set({ selectedId: copies[0].id, selectedIds: copies.map((c) => c.id) });
+    },
+
+    copySlides: (ids) => {
+      const { deck } = get();
+      const keep = new Set(ids);
+      const picked = deck.slides.filter((s) => keep.has(s.id));
+      if (picked.length) set({ clipboard: structuredClone(picked) });
+    },
+
+    pasteSlides: () => {
+      const { clipboard, deck, selectedId } = get();
+      if (clipboard.length === 0) return;
+      const copies = clipboard.map((s) => ({ ...structuredClone(s), id: uid("sl") }));
+      const idx = deck.slides.findIndex((s) => s.id === selectedId);
+      const at = idx >= 0 ? idx + 1 : deck.slides.length;
+      withDeck((d) => ({
+        ...d,
+        slides: [...d.slides.slice(0, at), ...copies, ...d.slides.slice(at)],
+      }));
+      set({ selectedId: copies[0].id, selectedIds: copies.map((c) => c.id) });
+    },
 
     setField: (slideId, key, value) =>
       withDeck(
@@ -252,11 +415,19 @@ export const useDeck = create<DeckState>((set, get) => {
       const slide = deck.slides.find((s) => s.id === slideId);
       if (!slide || slide.elements?.length) return;
       const tpl = getTemplate(slide.template);
-      if (!tpl?.expand) return;
-      const elements = tpl.expand(slide.fields, {
+      if (!tpl) return;
+      // Measure the real render rather than re-describing the layout, so detach
+      // works for every template and can never disagree with what is on screen.
+      // The identity image resolver keeps `blob:`/`icon:` refs intact.
+      const idx = deck.slides.findIndex((s) => s.id === slideId);
+      const node = tpl.render(slide.fields, {
         resolveImage: (r) => r,
         background: slide.background,
-      });
+        slideNumber: idx + 1,
+        slideCount: deck.slides.length,
+      }) as ReactElement;
+      const elements = expandFromDom(node);
+      if (elements.length === 0) return;
       withDeck((d) => mapSlides(d, slideId, (sl) => ({ ...sl, elements })));
       set({ selectedElementIds: [] });
     },
@@ -350,6 +521,7 @@ export const useDeck = create<DeckState>((set, get) => {
         return {
           deck,
           selectedId: deck.slides[0]?.id ?? null,
+          selectedIds: deck.slides[0] ? [deck.slides[0].id] : [],
           past: [...s.past, s.deck].slice(-HISTORY_CAP),
           future: [],
           _coalesceKey: null,

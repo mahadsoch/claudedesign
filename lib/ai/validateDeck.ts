@@ -51,17 +51,44 @@ function coerceList(def: FieldDef, value: unknown, fallback: FieldValue): FieldV
   return items;
 }
 
-function coerceFields(templateId: string, raw: unknown): Record<string, FieldValue> {
+/**
+ * Keep at most one `[[accent]]` per title. DESIGN.md allows exactly one; more
+ * than one is the fastest way a generated deck stops looking on-brand, and
+ * nothing checked it before.
+ */
+function capAccents(s: string): string {
+  let seen = false;
+  return s.replace(/\[\[(.+?)\]\]/g, (_m, inner: string) => {
+    if (seen) return inner;
+    seen = true;
+    return `[[${inner}]]`;
+  });
+}
+
+function coerceFields(
+  templateId: string,
+  raw: unknown,
+  report?: { defaulted: string[] }
+): Record<string, FieldValue> {
   const tpl = getTemplate(templateId)!;
   const defaults = tpl.defaults();
   const input = (raw ?? {}) as Record<string, unknown>;
   const out: Record<string, FieldValue> = {};
   for (const def of tpl.fields) {
     const fallback = defaults[def.key] ?? (def.type === "list" ? [] : "");
-    out[def.key] =
+    const supplied = input[def.key] != null;
+    let value =
       def.type === "list"
         ? coerceList(def, input[def.key], fallback)
         : coerceScalar(def, input[def.key], fallback);
+    if (typeof value === "string" && value.includes("[[")) value = capAccents(value);
+    out[def.key] = value;
+    // A field the model never wrote falls back to the reference-deck copy —
+    // which is real names and real stats ("SOURCE · GALLUP", the Soch roster).
+    // Silently shipping that into a client's deck is the failure worth naming.
+    if (!supplied && report && String(fallback).length > 0) {
+      report.defaulted.push(`${templateId}.${def.key}`);
+    }
   }
   return out;
 }
@@ -74,7 +101,12 @@ interface RawSlide {
   elements?: unknown;
 }
 
-export function validateDeck(raw: unknown, title = "Generated deck"): Deck {
+export function validateDeck(
+  raw: unknown,
+  title = "Generated deck",
+  /** Collects fields that fell back to template defaults, for the caller to log. */
+  report?: { defaulted: string[] }
+): Deck {
   const now = new Date().toISOString();
   const r = (raw ?? {}) as { meta?: { title?: string }; slides?: RawSlide[] };
   const rawSlides = Array.isArray(r.slides) ? r.slides : [];
@@ -93,7 +125,7 @@ export function validateDeck(raw: unknown, title = "Generated deck"): Deck {
         id: s.id || uid("sl"),
         template: s.template!,
         background: bg,
-        fields: coerceFields(s.template!, s.fields),
+        fields: coerceFields(s.template!, s.fields, report),
       };
       // Preserve freeform elements if a valid array was supplied (import path).
       if (Array.isArray(s.elements)) slide.elements = s.elements as Slide["elements"];

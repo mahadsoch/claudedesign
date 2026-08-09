@@ -1,7 +1,5 @@
 import type { TemplateDef } from "./types";
 import { str } from "./types";
-import { uid } from "@/lib/model/deck";
-import type { SlideElement } from "@/lib/model/deck";
 import { Stage, Kicker, Rule, parseAccents, tone, TYPE, titleTracking } from "./_shared/primitives";
 
 // The anchor moment. Previously this was a kicker and a title floating in the
@@ -105,22 +103,5 @@ export const statement: TemplateDef = {
         </div>
       </Stage>
     );
-  },
-  expand: (f, ctx): SlideElement[] => {
-    const t = tone(ctx.background);
-    const size = TYPE.h1 + 24;
-    const els: SlideElement[] = [];
-    if (str(f.ghost)) {
-      els.push({ id: uid("el"), type: "text", x: 1280, y: 620, w: 700, h: 460, rotation: 0, fieldKey: "ghost",
-        style: { fontFamily: "var(--font-title)", fontSize: 560, fontWeight: 600, lineHeight: 0.8, letterSpacing: -24, color: t.title, opacity: 0.07 }, content: str(f.ghost) });
-    }
-    els.push(
-      { id: uid("el"), type: "text", x: 130, y: 90, w: 1200, h: 34, rotation: 0, fieldKey: "kicker",
-        style: { fontFamily: "var(--font-mono)", fontSize: TYPE.kicker, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: t.accent }, content: str(f.kicker) },
-      { id: uid("el"), type: "shape", x: 130, y: 560, w: 200, h: 6, rotation: 0, style: { background: t.accent } },
-      { id: uid("el"), type: "text", x: 130, y: 656, w: 1560, h: 300, rotation: 0, fieldKey: "statement",
-        style: { fontFamily: "var(--font-title)", fontSize: size, fontWeight: 600, letterSpacing: titleTracking(size), lineHeight: 1.06, color: t.title }, content: str(f.statement) }
-    );
-    return els;
   },
 };

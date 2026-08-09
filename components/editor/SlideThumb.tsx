@@ -11,14 +11,32 @@ export function SlideThumb({
   slide,
   index,
   active,
+  selected,
+  dropBefore,
+  dropAfter,
   ctx,
-  onClick,
+  onPointerDown,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  onContextMenu,
 }: {
   slide: Slide;
   index: number;
+  /** The slide shown on the stage. */
   active: boolean;
+  /** Part of the current multi-selection. */
+  selected: boolean;
+  dropBefore?: boolean;
+  dropAfter?: boolean;
   ctx: BaseRenderCtx;
-  onClick: () => void;
+  onPointerDown: (e: React.MouseEvent) => void;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.12);
@@ -33,11 +51,31 @@ export function SlideThumb({
     return () => ro.disconnect();
   }, []);
 
+  const cls = [
+    "thumb",
+    active ? "active" : "",
+    selected && !active ? "selected" : "",
+    dropBefore ? "drop-before" : "",
+    dropAfter ? "drop-after" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div ref={ref} className={`thumb ${active ? "active" : ""}`} onClick={onClick}>
+    <div
+      ref={ref}
+      className={cls}
+      draggable
+      onMouseDown={onPointerDown}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      onContextMenu={onContextMenu}
+    >
       <span className="idx">{index + 1}</span>
       <div className="thumb-scale" style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${scale})` }}>
-        <SlideRenderer slide={slide} ctx={ctx} />
+        <SlideRenderer slide={slide} ctx={ctx} slideNumber={index + 1} />
       </div>
     </div>
   );

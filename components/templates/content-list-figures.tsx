@@ -1,7 +1,5 @@
 import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
-import { uid } from "@/lib/model/deck";
-import type { SlideElement } from "@/lib/model/deck";
 import { Stage, Kicker, AccentTitle, Rule, Stat, parseAccents, tone, TYPE, titleTracking } from "./_shared/primitives";
 
 // A vertical ledger: a hard rule over each row, a figure in a fixed column that
@@ -103,39 +101,5 @@ export const contentListFigures: TemplateDef = {
         )}
       </Stage>
     );
-  },
-  expand: (f, ctx) => {
-    const t = tone(ctx.background);
-    const items = rows(f.items);
-    const n = Math.max(items.length, 1);
-    // Rows are laid out from the same band the flow layout uses and share the
-    // band evenly, so detaching does not shift them the way a fixed 160px step
-    // did once a description wrapped to two lines.
-    const bandTop = 300;
-    const bandH = 600;
-    const step = bandH / n;
-    const els: SlideElement[] = [
-      { id: uid("el"), type: "text", x: 130, y: 90, w: 1200, h: 34, rotation: 0, fieldKey: "kicker",
-        style: { fontFamily: "var(--font-mono)", fontSize: TYPE.kicker, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: t.accent }, content: str(f.kicker) },
-      { id: uid("el"), type: "text", x: 130, y: 150, w: 1500, h: 120, rotation: 0, fieldKey: "title",
-        style: { fontFamily: "var(--font-title)", fontSize: TYPE.h3, fontWeight: 600, letterSpacing: titleTracking(TYPE.h3), lineHeight: 1.08, color: t.title }, content: str(f.title) },
-    ];
-    items.forEach((it, i) => {
-      const y = bandTop + i * step;
-      els.push(
-        { id: uid("el"), type: "shape", x: 130, y, w: 1660, h: 2, rotation: 0, style: { background: t.ruleStrong } },
-        { id: uid("el"), type: "text", x: 130, y: y + 30, w: 220, h: 76, rotation: 0,
-          style: { fontFamily: "var(--font-title)", fontSize: TYPE.statSm - 14, fontWeight: 600, letterSpacing: titleTracking(TYPE.statSm - 14), lineHeight: 1, color: t.accent }, content: str(it.figure) },
-        { id: uid("el"), type: "text", x: 390, y: y + 30, w: 1400, h: 46, rotation: 0,
-          style: { fontFamily: "var(--font-title)", fontSize: TYPE.h5 - 2, fontWeight: 600, letterSpacing: titleTracking(TYPE.h5), color: t.title }, content: str(it.head) },
-        { id: uid("el"), type: "text", x: 390, y: y + 86, w: 1400, h: 44, rotation: 0,
-          style: { fontFamily: "var(--font-body)", fontSize: TYPE.body, lineHeight: 1.45, color: t.body }, content: str(it.desc) }
-      );
-    });
-    if (str(f.takeaway)) {
-      els.push({ id: uid("el"), type: "text", x: 130, y: 940, w: 1600, h: 60, rotation: 0, fieldKey: "takeaway",
-        style: { fontFamily: "var(--font-title)", fontSize: TYPE.h5, fontWeight: 500, lineHeight: 1.4, color: t.title }, content: str(f.takeaway) });
-    }
-    return els;
   },
 };

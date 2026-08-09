@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import type { Slide } from "@/lib/model/deck";
+import type { Slide, SlideElement } from "@/lib/model/deck";
+import { STAGE_W, STAGE_H } from "@/lib/model/deck";
 import { useDeck } from "@/lib/state/deckStore";
 import { PALETTE, TYPE_SCALE } from "@/lib/canvas/brand";
 import { storeUpload } from "@/lib/persistence/imageStore";
@@ -13,12 +14,66 @@ export function ElementToolbar({ slide }: { slide: Slide }) {
   const removeElements = useDeck((s) => s.removeElements);
   const duplicateElement = useDeck((s) => s.duplicateElement);
   const reorderElement = useDeck((s) => s.reorderElement);
+  const commitGeometry = useDeck((s) => s.commitGeometry);
   const reattach = useDeck((s) => s.reattachSlide);
   const bump = useDeck((s) => s.bumpImages);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const one = selectedIds.length === 1 ? selectedIds[0] : null;
   const el = one ? slide.elements?.find((e) => e.id === one) : null;
+  const picked = (slide.elements ?? []).filter((e) => selectedIds.includes(e.id));
+
+  /**
+   * Align or distribute the selection. With one element selected the reference
+   * is the stage, so "centre" means centred on the slide; with several it is
+   * their common bounding box.
+   */
+  function align(op: "left" | "hcentre" | "right" | "top" | "vmiddle" | "bottom" | "hdist" | "vdist") {
+    if (picked.length === 0) return;
+    const solo = picked.length === 1;
+    const minX = solo ? 0 : Math.min(...picked.map((e) => e.x));
+    const maxX = solo ? STAGE_W : Math.max(...picked.map((e) => e.x + e.w));
+    const minY = solo ? 0 : Math.min(...picked.map((e) => e.y));
+    const maxY = solo ? STAGE_H : Math.max(...picked.map((e) => e.y + e.h));
+    const geo: Record<string, Partial<SlideElement>> = {};
+
+    if (op === "hdist" || op === "vdist") {
+      // Even gaps need at least three boxes to distribute between the outer two.
+      if (picked.length < 3) return;
+      const horiz = op === "hdist";
+      const sorted = [...picked].sort((a, b) => (horiz ? a.x - b.x : a.y - b.y));
+      const span = horiz
+        ? sorted[sorted.length - 1].x - sorted[0].x
+        : sorted[sorted.length - 1].y - sorted[0].y;
+      const stepPx = span / (sorted.length - 1);
+      sorted.forEach((e, i) => {
+        if (i === 0 || i === sorted.length - 1) return;
+        const v = Math.round((horiz ? sorted[0].x : sorted[0].y) + stepPx * i);
+        geo[e.id] = horiz ? { x: v } : { y: v };
+      });
+      commitGeometry(slide.id, geo);
+      return;
+    }
+
+    for (const e of picked) {
+      if (op === "left") geo[e.id] = { x: Math.round(minX) };
+      else if (op === "right") geo[e.id] = { x: Math.round(maxX - e.w) };
+      else if (op === "hcentre") geo[e.id] = { x: Math.round((minX + maxX) / 2 - e.w / 2) };
+      else if (op === "top") geo[e.id] = { y: Math.round(minY) };
+      else if (op === "bottom") geo[e.id] = { y: Math.round(maxY - e.h) };
+      else if (op === "vmiddle") geo[e.id] = { y: Math.round((minY + maxY) / 2 - e.h / 2) };
+    }
+    commitGeometry(slide.id, geo);
+  }
+
+  const ALIGN_BUTTONS = [
+    { op: "left", label: "\u21E4", title: "Align left" },
+    { op: "hcentre", label: "\u21FF", title: "Align horizontal centres" },
+    { op: "right", label: "\u21E5", title: "Align right" },
+    { op: "top", label: "\u2912", title: "Align top" },
+    { op: "vmiddle", label: "\u21D5", title: "Align vertical middles" },
+    { op: "bottom", label: "\u2913", title: "Align bottom" },
+  ] as const;
 
   return (
     <div className="canvas-toolbar">
@@ -88,14 +143,39 @@ export function ElementToolbar({ slide }: { slide: Slide }) {
             ))}
           </div>
           <div className="ct-sep" />
+          {/* The store has supported front/back all along; nothing exposed it. */}
+          <button className="ct-btn" title="Bring to front" onClick={() => reorderElement(slide.id, el.id, "front")}>Front</button>
           <button className="ct-btn" title="Bring forward" onClick={() => reorderElement(slide.id, el.id, "forward")}>↑</button>
           <button className="ct-btn" title="Send backward" onClick={() => reorderElement(slide.id, el.id, "backward")}>↓</button>
-          <button className="ct-btn" title="Duplicate" onClick={() => duplicateElement(slide.id, el.id)}>⧉</button>
+          <button className="ct-btn" title="Send to back" onClick={() => reorderElement(slide.id, el.id, "back")}>Back</button>
+          <button className="ct-btn" title="Duplicate (⌘D)" onClick={() => duplicateElement(slide.id, el.id)}>⧉</button>
         </>
       ) : (
         <span className="ct-hint">
           {selectedIds.length > 1 ? `${selectedIds.length} selected` : "Click an element to edit · double-click text to type"}
         </span>
+      )}
+
+      {selectedIds.length > 0 && (
+        <>
+          <div className="ct-sep" />
+          {ALIGN_BUTTONS.map((b) => (
+            <button
+              key={b.op}
+              className={"ct-btn ct-align ct-align-" + b.op}
+              title={picked.length > 1 ? b.title : b.title + " (on the slide)"}
+              onClick={() => align(b.op)}
+            >
+              {b.label}
+            </button>
+          ))}
+          <button className="ct-btn" title="Distribute horizontally" disabled={picked.length < 3} onClick={() => align("hdist")}>
+            ⇹
+          </button>
+          <button className="ct-btn" title="Distribute vertically" disabled={picked.length < 3} onClick={() => align("vdist")}>
+            ⇳
+          </button>
+        </>
       )}
 
       {selectedIds.length > 0 && (

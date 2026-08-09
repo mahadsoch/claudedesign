@@ -140,7 +140,17 @@ ${slideSpecs}`;
     background: backgrounds[i],
     fields: filled[i]?.fields ?? {},
   }));
-  return validateDeck({ meta: { title }, slides }, title);
+  const report = { defaulted: [] as string[] };
+  const deck = validateDeck({ meta: { title }, slides }, title, report);
+  if (report.defaulted.length) {
+    // These fields are showing the reference deck's copy — real names, real
+    // stats — because the model never wrote them. Worth seeing in the log
+    // before a deck like that goes to a client.
+    console.warn(
+      `[generate] ${report.defaulted.length} field(s) fell back to template defaults: ${report.defaulted.join(", ")}`
+    );
+  }
+  return deck;
 }
 
 // ── Fallback: single-pass generation (model picks templates + fills at once) ──

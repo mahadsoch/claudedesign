@@ -1,7 +1,5 @@
 import type { TemplateDef } from "./types";
 import { str } from "./types";
-import { uid } from "@/lib/model/deck";
-import type { SlideElement } from "@/lib/model/deck";
 import { Stage, Kicker, Rule, parseAccents, tone, TYPE, titleTracking } from "./_shared/primitives";
 
 // A chapter break. The deck had no dedicated divider at all, so `statement` was
@@ -80,20 +78,5 @@ export const sectionDivider: TemplateDef = {
         </div>
       </Stage>
     );
-  },
-  expand: (f, ctx): SlideElement[] => {
-    const t = tone(ctx.background);
-    const size = TYPE.hero + 16;
-    return [
-      { id: uid("el"), type: "text", x: 1180, y: 180, w: 820, h: 720, rotation: 0, fieldKey: "number",
-        style: { fontFamily: "var(--font-title)", fontSize: 720, fontWeight: 600, lineHeight: 0.75, letterSpacing: -40, color: t.accent, opacity: 0.16 }, content: str(f.number) },
-      { id: uid("el"), type: "text", x: 130, y: 300, w: 1000, h: 34, rotation: 0, fieldKey: "kicker",
-        style: { fontFamily: "var(--font-mono)", fontSize: TYPE.kicker, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: t.accent }, content: str(f.kicker) },
-      { id: uid("el"), type: "text", x: 130, y: 370, w: 1180, h: 260, rotation: 0, fieldKey: "title",
-        style: { fontFamily: "var(--font-title)", fontSize: size, fontWeight: 600, letterSpacing: titleTracking(size), lineHeight: 1.03, color: t.title }, content: str(f.title) },
-      { id: uid("el"), type: "shape", x: 130, y: 668, w: 200, h: 6, rotation: 0, style: { background: t.accent } },
-      { id: uid("el"), type: "text", x: 130, y: 714, w: 820, h: 100, rotation: 0, fieldKey: "summary",
-        style: { fontFamily: "var(--font-body)", fontSize: TYPE.h6, lineHeight: 1.5, color: t.body }, content: str(f.summary) },
-    ];
   },
 };
