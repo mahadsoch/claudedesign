@@ -1,5 +1,6 @@
 import { getTemplate } from "@/components/templates/registry";
 import { rankTemplates } from "@/lib/ai/suggestTemplates";
+import type { Background } from "@/lib/model/deck";
 
 // Content-driven template selection for AI generation. The generator plans a
 // deck as a list of { intent, contentType } beats; this module turns each beat
@@ -18,21 +19,29 @@ export interface ContentType {
 export const CONTENT_TYPES: ContentType[] = [
   { id: "cover", label: "Opening title / cover slide", templates: ["title-hero", "cover-card"] },
   { id: "agenda", label: "Agenda or table of contents", templates: ["agenda-list", "agenda-2x2"] },
+  { id: "section", label: "A chapter break between sections of the deck", templates: ["section-divider", "image-full-bleed"] },
   { id: "context", label: "Context / where things stand today, with a few figures", templates: ["context-stat-rail", "big-stats"] },
   { id: "problem", label: "A problem framed as a few parallel points", templates: ["three-columns", "content-list-figures"] },
   { id: "approach", label: "The approach as phased stages", templates: ["process-stages", "step-timeline"] },
   { id: "features", label: "Capabilities / what's covered / reasons", templates: ["feature-grid", "content-list-figures"] },
   { id: "metrics", label: "One or a few big headline metrics", templates: ["big-stats", "quadrant-highlight"] },
+  { id: "chart", label: "Quantities to compare as a chart — shares, volumes, a ranking", templates: ["data-bars", "big-stats"] },
+  { id: "proportion", label: "Percentages or completion rates shown as rings", templates: ["data-donut", "data-bars"] },
   { id: "impact", label: "Outcomes plus the single metric to chase", templates: ["impact-highlight", "content-list-figures"] },
   { id: "framework", label: "A 2×2 or positioning framework", templates: ["matrix-2x2", "quadrant-highlight"] },
-  { id: "comparison", label: "Two options, or before vs after", templates: ["two-column-compare"] },
+  { id: "comparison", label: "Two options compared", templates: ["two-column-compare", "comparison-table"] },
+  { id: "matrix", label: "Several options compared across capability rows", templates: ["comparison-table", "two-column-compare"] },
+  { id: "beforeafter", label: "A transformation — the old state versus the new one", templates: ["before-after", "two-column-compare"] },
+  { id: "scope", label: "Scope, deliverables, assumptions or terms as a table", templates: ["spec-table", "content-list-figures"] },
   { id: "results", label: "Client results / case studies", templates: ["results-numbers", "big-stats"] },
+  { id: "testimonial", label: "An attributed client quote with a name and a result", templates: ["quote-portrait", "pull-quote"] },
   { id: "roadmap", label: "A phased roadmap / rollout over time", templates: ["roadmap-phases", "process-stages"] },
   { id: "logos", label: "Logos, tools, or integrations", templates: ["logo-stack-grid"] },
   { id: "pricing", label: "Pricing / investment tiers", templates: ["pricing-tiers"] },
   { id: "principles", label: "Operating principles / how we work", templates: ["operating-principle"] },
   { id: "quote", label: "A single strong quote or belief", templates: ["pull-quote", "statement"] },
   { id: "statement", label: "A bold one-line statement / anchor moment", templates: ["statement", "pull-quote"] },
+  { id: "visual", label: "A full-bleed image moment / a visual pause", templates: ["image-full-bleed", "section-divider"] },
   { id: "bio", label: "Spotlight on one person", templates: ["featured-bio"] },
   { id: "team", label: "The team / people roster", templates: ["team-grid"] },
   { id: "nextsteps", label: "Next steps / the path to kickoff", templates: ["step-timeline", "contact-cta"] },
@@ -92,6 +101,65 @@ export function chooseTemplates(beats: PlanBeat[]): string[] {
     used.set(pick, (used.get(pick) ?? 0) + 1);
     prev = pick;
   }
+
+  return out;
+}
+
+// ── Background rhythm ───────────────────────────────────────────────────────
+// DESIGN.md: dark anchors the deck (open, impact, close), coral carries the
+// emotional beats (quotes and principles), cream does the workhorse content,
+// and no two adjacent slides share a heavy background unless intended.
+//
+// This could not previously happen at all: `validateDeck` overwrote whatever
+// the model chose with the template's own default, and most templates default
+// to cream — so the recommended spine produced one dark slide followed by ten
+// consecutive cream ones, with no coral anywhere.
+
+/** Content types that *are* the emotional beat, and belong on coral. */
+const CORAL_TYPES = new Set(["quote", "principles", "testimonial"]);
+/** Content types that anchor the deck, and belong on ink. */
+const DARK_TYPES = new Set([
+  "cover",
+  "statement",
+  "section",
+  "visual",
+  "metrics",
+  "proportion",
+  "results",
+  "closing",
+  "comparison",
+]);
+
+const MAX_CREAM_RUN = 2;
+
+/**
+ * Assign a background per slide from the planned beats, honouring the rhythm.
+ * Returns one background per beat, aligned with `chooseTemplates`' output.
+ */
+export function assignBackgrounds(beats: PlanBeat[], templateIds: string[]): Background[] {
+  const out: Background[] = [];
+  let creamRun = 0;
+
+  beats.forEach((beat, i) => {
+    const isFirst = i === 0;
+    const isLast = i === beats.length - 1;
+    const tpl = getTemplate(templateIds[i] ?? "");
+    let bg: Background;
+
+    if (CORAL_TYPES.has(beat.contentType)) bg = "coral";
+    else if (isFirst || isLast || DARK_TYPES.has(beat.contentType)) bg = "dark";
+    else if (creamRun >= MAX_CREAM_RUN) {
+      // The run has gone on too long. Break it with the heavier of the two —
+      // dark unless the template's own default says this is a coral moment.
+      bg = tpl?.background === "coral" ? "coral" : "dark";
+    } else bg = "cream";
+
+    // Never repeat a heavy background on adjacent slides; drop back to cream.
+    if (bg !== "cream" && out[i - 1] === bg) bg = "cream";
+
+    creamRun = bg === "cream" ? creamRun + 1 : 0;
+    out.push(bg);
+  });
 
   return out;
 }

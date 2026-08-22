@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Background, FieldValue, SlideElement } from "@/lib/model/deck";
+import type { Background, FieldValue } from "@/lib/model/deck";
 
 // ── Field schema ────────────────────────────────────────────────────────────
 // A template describes its editable content as a list of FieldDefs. The generic
@@ -7,7 +7,12 @@ import type { Background, FieldValue, SlideElement } from "@/lib/model/deck";
 // template gets its editor UI for free. Guardrails (maxLength, maxItems) live
 // here, keeping brand safety declarative.
 
-export type FieldType = "text" | "textarea" | "image" | "list";
+export type FieldType = "text" | "textarea" | "image" | "list" | "select";
+
+export interface FieldOption {
+  value: string;
+  label: string;
+}
 
 export interface FieldDef {
   key: string;
@@ -23,6 +28,12 @@ export interface FieldDef {
    * omitted means a plain image uploader.
    */
   picker?: "icon";
+  /**
+   * For `select` fields: the allowed values. The Inspector renders a dropdown
+   * and `validateDeck` coerces anything else back to `options[0].value`, so a
+   * template can branch on the value without defensive parsing.
+   */
+  options?: FieldOption[];
   // list-only:
   itemFields?: FieldDef[];
   itemLabel?: string; // singular, e.g. "Item", "Stat"
@@ -37,7 +48,25 @@ export interface RenderCtx {
    *  - blob refs ("blob:<id>") → object URL (client) or inlined data URL (PDF)
    */
   resolveImage: (ref: string | undefined) => string | undefined;
+  /**
+   * The background this slide is actually being rendered on. A template must
+   * pass this to its `Stage` and derive its colours from `tone(ctx.background)`
+   * rather than hard-coding tokens — that is what makes every template legible
+   * on ink, cream and coral, and what makes the deck's background rhythm real.
+   */
+  background: Background;
+  /** 1-based position in the deck, for `SlideFooter`. Absent in previews. */
+  slideNumber?: number;
+  /** Total slides in the deck, for `SlideFooter`. Absent in previews. */
+  slideCount?: number;
 }
+
+/**
+ * What a *carrier* holds — the editor, the print page, the gallery. The
+ * per-slide parts (`background`, `slideNumber`, `slideCount`) are filled in by
+ * `SlideRenderer` from the slide itself, so no caller has to thread them.
+ */
+export type BaseRenderCtx = Omit<RenderCtx, "background" | "slideNumber" | "slideCount">;
 
 // ── Template definition ─────────────────────────────────────────────────────
 export interface TemplateDef {
@@ -65,12 +94,10 @@ export interface TemplateDef {
    * the correct background, so `render` only lays out content.
    */
   render: (fields: Record<string, FieldValue>, ctx: RenderCtx) => ReactNode;
-  /**
-   * Optional: expand the template into absolutely-positioned elements for the
-   * freeform canvas ("Detach to canvas"). Present only on templates that
-   * support freeform editing; the Inspector gates the Detach button on it.
-   */
-  expand?: (fields: Record<string, FieldValue>, ctx: RenderCtx) => SlideElement[];
+  // Note: there is deliberately no `expand()`. "Detach to canvas" measures the
+  // rendered template instead (see lib/canvas/expandFromDom.ts), the same way
+  // the PPTX exporter does, so every template can detach and none of them can
+  // drift from their own layout.
 }
 
 // Convenience accessors with sensible fallbacks.
@@ -79,3 +106,14 @@ export const str = (v: FieldValue | undefined, fallback = ""): string =>
 
 export const rows = (v: FieldValue | undefined): Record<string, string>[] =>
   Array.isArray(v) ? (v as Record<string, string>[]) : [];
+
+/**
+ * Pull the leading number out of a display string, so a chart can be driven by
+ * the same field the audience reads: "€180k" → 180, "-42%" → -42, "1 in 4" → 1.
+ * Returns `fallback` when there is no number to find.
+ */
+export const numOf = (v: string | undefined, fallback = 0): number => {
+  if (!v) return fallback;
+  const m = v.replace(/[,\s]/g, "").match(/-?\d+(\.\d+)?/);
+  return m ? Number(m[0]) : fallback;
+};

@@ -5,7 +5,7 @@ import Moveable from "react-moveable";
 import Selecto from "react-selecto";
 import type { Slide, SlideElement } from "@/lib/model/deck";
 import { STAGE_W, STAGE_H } from "@/lib/model/deck";
-import type { RenderCtx } from "@/components/templates/types";
+import type { BaseRenderCtx } from "@/components/templates/types";
 import { useDeck } from "@/lib/state/deckStore";
 import { Stage } from "@/components/templates/_shared/primitives";
 import { elementContent } from "./renderElement";
@@ -17,7 +17,7 @@ type Geo = Pick<SlideElement, "x" | "y" | "w" | "h" | "rotation">;
  *  the CSS transform applied by PreviewStage, fed to Moveable's `zoom` so
  *  handles stay screen-sized while all geometry math stays in 1920-px design
  *  coordinates. */
-export function CanvasStage({ slide, scale, ctx }: { slide: Slide; scale: number; ctx: RenderCtx }) {
+export function CanvasStage({ slide, scale, ctx }: { slide: Slide; scale: number; ctx: BaseRenderCtx }) {
   const elements = slide.elements ?? [];
   const selectedIds = useDeck((s) => s.selectedElementIds);
   const editingId = useDeck((s) => s.editingElementId);
@@ -35,6 +35,31 @@ export function CanvasStage({ slide, scale, ctx }: { slide: Slide; scale: number
   const targets = selectedIds
     .map((id) => nodeMap.current.get(id))
     .filter(Boolean) as HTMLElement[];
+
+  // Everything that is NOT selected becomes a snap target, so dragging one
+  // element aligns to the edges and centres of the others.
+  const unselectedNodes = elements
+    .filter((el) => !selectedIds.includes(el.id))
+    .map((el) => nodeMap.current.get(el.id))
+    .filter(Boolean) as HTMLElement[];
+
+  // Tracked outside React state so a shift press mid-drag takes effect without
+  // a re-render tearing down the Moveable gesture.
+  const shiftRef = useRef(false);
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "Shift") shiftRef.current = true;
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.key === "Shift") shiftRef.current = false;
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+    };
+  }, []);
 
   // Keep Moveable's box in sync when the selection or elements change.
   useEffect(() => {
@@ -132,14 +157,22 @@ export function CanvasStage({ slide, scale, ctx }: { slide: Slide; scale: number
           zoom={1 / scale}
           origin={false}
           draggable
-          resizable={targets.length === 1}
-          rotatable={targets.length === 1}
+          resizable
+          rotatable
+          // Shift locks the aspect ratio while resizing — the one gesture every
+          // design tool has and this canvas did not.
+          keepRatio={shiftRef.current}
           snappable
           snapThreshold={6}
           snapGridWidth={SNAP_GRID}
           snapGridHeight={SNAP_GRID}
           verticalGuidelines={[0, STAGE_W / 2, STAGE_W]}
           horizontalGuidelines={[0, STAGE_H / 2, STAGE_H]}
+          // Snap to the *other* elements, not just to the stage centre and a
+          // blind 20px grid. Without this there are no smart guides at all.
+          elementGuidelines={unselectedNodes}
+          snapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
+          elementSnapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
           onDragStart={() => startBase(selectedIds)}
           onDrag={(e) => {
             const id = (e.target as HTMLElement).dataset.elId!;
@@ -179,6 +212,37 @@ export function CanvasStage({ slide, scale, ctx }: { slide: Slide; scale: number
             const g = { ...b, rotation: Math.round(e.rotation) };
             draftRef.current[id] = { rotation: g.rotation };
             apply(e.target as HTMLElement, g);
+          }}
+          onResizeGroupStart={() => startBase(selectedIds)}
+          onResizeGroup={(e) => {
+            e.events.forEach((ev) => {
+              const id = (ev.target as HTMLElement).dataset.elId!;
+              const b = baseRef.current.get(id)!;
+              const g = {
+                ...b,
+                w: Math.round(ev.width),
+                h: Math.round(ev.height),
+                x: b.x + ev.drag.beforeTranslate[0],
+                y: b.y + ev.drag.beforeTranslate[1],
+              };
+              draftRef.current[id] = { w: g.w, h: g.h, x: g.x, y: g.y };
+              apply(ev.target as HTMLElement, g);
+            });
+          }}
+          onRotateGroupStart={() => startBase(selectedIds)}
+          onRotateGroup={(e) => {
+            e.events.forEach((ev) => {
+              const id = (ev.target as HTMLElement).dataset.elId!;
+              const b = baseRef.current.get(id)!;
+              const g = {
+                ...b,
+                rotation: Math.round(ev.rotation),
+                x: b.x + ev.drag.beforeTranslate[0],
+                y: b.y + ev.drag.beforeTranslate[1],
+              };
+              draftRef.current[id] = { rotation: g.rotation, x: g.x, y: g.y };
+              apply(ev.target as HTMLElement, g);
+            });
           }}
           onRenderEnd={() => flush()}
           onRenderGroupEnd={() => flush()}

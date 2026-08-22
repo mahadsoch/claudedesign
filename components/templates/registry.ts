@@ -24,6 +24,14 @@ import { featuredBio } from "./featured-bio";
 import { teamGrid } from "./team-grid";
 import { stepTimeline } from "./step-timeline";
 import { contactCta } from "./contact-cta";
+import { sectionDivider } from "./section-divider";
+import { dataBars } from "./data-bars";
+import { dataDonut } from "./data-donut";
+import { comparisonTable } from "./comparison-table";
+import { specTable } from "./spec-table";
+import { beforeAfter } from "./before-after";
+import { imageFullBleed } from "./image-full-bleed";
+import { quotePortrait } from "./quote-portrait";
 
 // Adding a template = import it above + one line here. Nothing else changes.
 // Ordered roughly by narrative role (open → frame → make the case → close).
@@ -33,21 +41,29 @@ export const TEMPLATES: TemplateDef[] = [
   coverCard,
   agenda2x2,
   agendaList,
+  sectionDivider,
   // Frame the situation
   pullQuote,
   statement,
+  imageFullBleed,
   contextStatRail,
   threeColumns,
   // Make the case
   processStages,
   featureGrid,
   bigStats,
+  dataBars,
+  dataDonut,
   contentListFigures,
   impactHighlight,
+  beforeAfter,
   matrix2x2,
   quadrantHighlight,
   twoColumnCompare,
+  comparisonTable,
+  specTable,
   resultsNumbers,
+  quotePortrait,
   roadmapPhases,
   logoStackGrid,
   // Investment

@@ -1,13 +1,13 @@
 import type { CSSProperties } from "react";
 import type { SlideElement } from "@/lib/model/deck";
-import type { RenderCtx } from "@/components/templates/types";
+import type { BaseRenderCtx } from "@/components/templates/types";
 import { parseAccents } from "@/components/templates/_shared/primitives";
 import { isIconRef, iconNameOf, renderIcon } from "@/lib/icons/iconSet";
 
 // The visual content of an element, filling its box (no positioning). Shared by
 // the static renderer (print/thumbnails) and the interactive canvas wrapper, so
 // what you edit is exactly what the PDF shows.
-export function elementContent(el: SlideElement, ctx: RenderCtx) {
+export function elementContent(el: SlideElement, ctx: BaseRenderCtx) {
   const style = el.style as CSSProperties;
 
   if (el.type === "text") {
@@ -79,7 +79,7 @@ export function elementContent(el: SlideElement, ctx: RenderCtx) {
 }
 
 // Static, absolutely-positioned render of one element (print, thumbnails).
-export function renderElement(el: SlideElement, ctx: RenderCtx) {
+export function renderElement(el: SlideElement, ctx: BaseRenderCtx) {
   return (
     <div
       style={{

@@ -129,6 +129,123 @@ body {
 .thumb.active {
   border-color: var(--coral);
 }
+.thumb.selected {
+  border-color: #6a6a6a;
+}
+/* Drop indicator while dragging to reorder */
+.thumb.drop-before::before,
+.thumb.drop-after::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--coral);
+  z-index: 3;
+}
+.thumb.drop-before::before {
+  top: 0;
+}
+.thumb.drop-after::before {
+  bottom: 0;
+}
+
+/* Right-click menu (filmstrip) */
+.ctx-menu {
+  position: fixed;
+  z-index: 2000;
+  min-width: 210px;
+  background: #1c1c1c;
+  border: 1px solid #383838;
+  border-radius: 9px;
+  padding: 5px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+}
+.ctx-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #e6e6e6;
+  font: 400 13px var(--font-body);
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.ctx-menu button span {
+  font: 500 11px var(--font-mono);
+  color: #6f6f6f;
+}
+.ctx-menu button:hover:not(:disabled) {
+  background: #2c2c2c;
+}
+.ctx-menu button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ctx-menu button.danger:hover:not(:disabled) {
+  background: #3a1e1e;
+}
+.ctx-sep {
+  height: 1px;
+  background: #333;
+  margin: 5px 4px;
+}
+
+/* Overflow warning on the stage */
+.overflow-warn {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  z-index: 30;
+  font: 600 11px var(--font-mono);
+  letter-spacing: 0.5px;
+  color: #ffd9d0;
+  background: #4a1f18;
+  border: 1px solid #7a3427;
+  border-radius: 8px;
+  padding: 7px 11px;
+  cursor: help;
+}
+
+/* Zoom control on the stage */
+.zoombar {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #161616;
+  border: 1px solid #2c2c2c;
+  border-radius: 9px;
+  padding: 4px;
+  z-index: 30;
+}
+.zoombar button {
+  background: none;
+  border: none;
+  color: #cfcfcf;
+  font: 500 12px var(--font-body);
+  padding: 5px 9px;
+  border-radius: 5px;
+  cursor: pointer;
+  min-width: 28px;
+}
+.zoombar button:hover {
+  background: #2a2a2a;
+  color: #fff;
+}
+.zoombar .pct {
+  font: 500 11px var(--font-mono);
+  color: #8a8a8a;
+  min-width: 46px;
+  text-align: center;
+}
 .thumb .idx {
   position: absolute;
   top: 4px;
@@ -175,6 +292,37 @@ body {
 .field textarea:focus {
   outline: none;
   border-color: var(--coral);
+}
+.field-select {
+  width: 100%;
+  background: #1e1e1e;
+  border: 1px solid #383838;
+  border-radius: 7px;
+  color: #f0f0f0;
+  font: 400 13px/1.4 var(--font-body);
+  padding: 9px 10px;
+}
+.field-select:focus {
+  outline: none;
+  border-color: var(--coral);
+}
+.bg-swatches {
+  display: flex;
+  gap: 8px;
+}
+.bg-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: inset 0 0 0 2px #141414;
+}
+.bg-swatch.is-active {
+  box-shadow:
+    inset 0 0 0 2px #141414,
+    0 0 0 2px var(--coral);
 }
 .field .hint {
   font: 400 10px/1.3 var(--font-body);

@@ -1,9 +1,9 @@
 import type { TemplateDef } from "./types";
 import { str } from "./types";
-import { uid } from "@/lib/model/deck";
-import type { SlideElement } from "@/lib/model/deck";
-import { Stage, Kicker, AccentTitle, ImageBox, Logo } from "./_shared/primitives";
+import { Stage, Kicker, AccentTitle, ImageBox, Logo, Button, tone, TYPE, titleTracking } from "./_shared/primitives";
 
+// The closing bookend to `title-hero`: same lockup, same bleed, same coral mark
+// overlapping the image edge — so the deck opens and closes on the same note.
 export const contactCta: TemplateDef = {
   id: "contact-cta",
   name: "Contact / CTA",
@@ -26,55 +26,65 @@ export const contactCta: TemplateDef = {
     contact: "withsoch.com · info@withsoch.com",
     image: "",
   }),
-  render: (f, ctx) => (
-    <Stage background="dark" style={{ padding: "90px 120px 80px", display: "flex", gap: 100 }}>
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <Logo height={52} />
-        <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 36, paddingBottom: 20 }}>
-          <Kicker>{str(f.kicker)}</Kicker>
-          <AccentTitle text={str(f.title)} size={92} />
-          <p style={{ fontSize: 32, lineHeight: 1.5, color: "var(--body-dark)", margin: 0 }}>{str(f.subtitle)}</p>
-          <div style={{ display: "flex", alignItems: "center", gap: 36, marginTop: 12 }}>
-            <span
-              style={{
-                fontFamily: "var(--font-title)",
-                fontWeight: 600,
-                fontSize: 28,
-                letterSpacing: 0.5,
-                background: "var(--coral)",
-                color: "var(--cream)",
-                padding: "22px 52px",
-                borderRadius: 999,
-                display: "inline-block",
-              }}
-            >
-              {str(f.ctaLabel)}
-            </span>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 25, letterSpacing: 1, color: "var(--body-dark-3)" }}>
-              {str(f.contact)}
+  render: (f, ctx) => {
+    const t = tone(ctx.background);
+    const IMG_W = 700;
+    return (
+      <Stage background={ctx.background} padded={false}>
+        <div
+          style={{
+            position: "absolute",
+            left: "var(--pad-x)",
+            top: "var(--pad-y)",
+            bottom: 80,
+            right: IMG_W + 100,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Logo height={52} />
+          <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 36 }}>
+            <Kicker>{str(f.kicker)}</Kicker>
+            <AccentTitle text={str(f.title)} size={TYPE.h1 + 4} style={{ color: t.title }} />
+            <p style={{ fontSize: TYPE.h6 + 2, lineHeight: 1.5, color: t.body, margin: 0 }}>
+              {str(f.subtitle)}
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 36, marginTop: 12, flexWrap: "wrap" }}>
+              <Button tone={t}>{str(f.ctaLabel)}</Button>
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: TYPE.body - 1,
+                  letterSpacing: 1,
+                  color: t.bodyStrong,
+                }}
+              >
+                {str(f.contact)}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div style={{ flex: "0 0 560px", minWidth: 0, position: "relative", display: "flex", alignItems: "center" }}>
-        <div style={{ position: "relative", width: "100%", height: 760 }}>
-          <ImageBox src={ctx.resolveImage(str(f.image))} placeholder="Drop a closing image" />
+
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: IMG_W }}>
+          <ImageBox
+            src={ctx.resolveImage(str(f.image))}
+            radius={0}
+            placeholder="Drop a closing image"
+            tone={t}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: -22,
+              bottom: 150,
+              width: 44,
+              height: 44,
+              borderRadius: "50%",
+              background: t.accent,
+            }}
+          />
         </div>
-      </div>
-    </Stage>
-  ),
-  expand: (f): SlideElement[] => [
-    { id: uid("el"), type: "image", x: 120, y: 90, w: 180, h: 52, rotation: 0, style: { objectFit: "contain" }, content: "/assets/soch-logo.png" },
-    { id: uid("el"), type: "text", x: 120, y: 470, w: 1000, h: 34, rotation: 0, fieldKey: "kicker",
-      style: { fontFamily: "var(--font-mono)", fontSize: 24, letterSpacing: 5, fontWeight: 500, textTransform: "uppercase", color: "var(--coral)" }, content: str(f.kicker) },
-    { id: uid("el"), type: "text", x: 120, y: 528, w: 1000, h: 200, rotation: 0, fieldKey: "title",
-      style: { fontFamily: "var(--font-title)", fontSize: 92, fontWeight: 600, letterSpacing: -3, lineHeight: 1.05, color: "var(--cream)" }, content: str(f.title) },
-    { id: uid("el"), type: "text", x: 120, y: 760, w: 900, h: 50, rotation: 0, fieldKey: "subtitle",
-      style: { fontFamily: "var(--font-body)", fontSize: 32, lineHeight: 1.5, color: "var(--body-dark)" }, content: str(f.subtitle) },
-    { id: uid("el"), type: "text", x: 120, y: 840, w: 320, h: 76, rotation: 0, fieldKey: "ctaLabel",
-      style: { fontFamily: "var(--font-title)", fontSize: 28, fontWeight: 600, letterSpacing: 0.5, background: "var(--coral)", color: "var(--cream)", borderRadius: 999, textAlign: "center", padding: "22px 20px" }, content: str(f.ctaLabel) },
-    { id: uid("el"), type: "text", x: 470, y: 862, w: 700, h: 40, rotation: 0, fieldKey: "contact",
-      style: { fontFamily: "var(--font-mono)", fontSize: 25, letterSpacing: 1, color: "var(--body-dark-3)" }, content: str(f.contact) },
-    { id: uid("el"), type: "image", x: 1240, y: 160, w: 560, h: 760, rotation: 0, style: { borderRadius: 24, objectFit: "cover" }, content: str(f.image) },
-  ],
+      </Stage>
+    );
+  },
 };

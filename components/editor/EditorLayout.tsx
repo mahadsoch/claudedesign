@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDeck } from "@/lib/state/deckStore";
-import type { RenderCtx } from "@/components/templates/types";
+import { useHotkeys } from "@/lib/state/useHotkeys";
+import type { BaseRenderCtx } from "@/components/templates/types";
 import { resolveImageSync, resolveImageAsync } from "@/lib/persistence/imageStore";
 import { exportDeckJson, importDeckJson } from "@/lib/persistence/transfer";
 import { exportDeckPdf } from "@/lib/pdf/exportPdf";
@@ -35,27 +36,16 @@ export function EditorLayout() {
   const [fontsBusy, setFontsBusy] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [swapping, setSwapping] = useState(false);
+  const setSlideTemplate = useDeck((s) => s.setSlideTemplate);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
-  // Global undo/redo shortcuts (ignore while typing in a field).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod || e.key.toLowerCase() !== "z") return;
-      const el = document.activeElement;
-      const typing = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
-      if (typing) return; // let the field handle its own undo
-      e.preventDefault();
-      if (e.shiftKey) redo();
-      else undo();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [undo, redo]);
+  const browseTemplates = useCallback(() => setShowTemplates(true), []);
+  useHotkeys({ onBrowseTemplates: browseTemplates });
 
   // Warm object URLs for any blob image refs, then force a re-render.
   useEffect(() => {
@@ -81,7 +71,7 @@ export function EditorLayout() {
     };
   }, [deck.slides, bumpImages]);
 
-  const ctx: RenderCtx = useMemo(
+  const ctx: BaseRenderCtx = useMemo(
     () => ({ resolveImage: resolveImageSync }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [imageVersion]
@@ -209,8 +199,22 @@ export function EditorLayout() {
       </div>
 
       <SlidePalette ctx={ctx} onBrowse={() => setShowTemplates(true)} />
-      {current ? <PreviewStage slide={current} ctx={ctx} /> : <div className="stage-wrap" />}
-      <Inspector />
+      {current ? (
+        <PreviewStage
+          slide={current}
+          ctx={ctx}
+          slideNumber={deck.slides.findIndex((s) => s.id === current.id) + 1}
+          slideCount={deck.slides.length}
+        />
+      ) : (
+        <div className="stage-wrap" />
+      )}
+      <Inspector
+        onSwapLayout={() => {
+          setSwapping(true);
+          setShowTemplates(true);
+        }}
+      />
 
       {showGenerate && (
         <GenerateModal onClose={() => setShowGenerate(false)} onGenerated={(d) => replaceDeck(d)} />
@@ -219,12 +223,20 @@ export function EditorLayout() {
       {showTemplates && (
         <TemplateGallery
           ctx={ctx}
-          onClose={() => setShowTemplates(false)}
-          onInsert={(id) => {
-            addSlide(id);
+          mode={swapping ? "swap" : "insert"}
+          currentTemplateId={current?.template}
+          onClose={() => {
             setShowTemplates(false);
+            setSwapping(false);
+          }}
+          onInsert={(id) => {
+            if (swapping && current) setSlideTemplate(current.id, id);
+            else addSlide(id);
+            setShowTemplates(false);
+            setSwapping(false);
           }}
           onUseDeck={(d) => {
+            setSwapping(false);
             if (
               deck.slides.length > 0 &&
               !confirm("Replace the current deck with this template? Your current slides will be cleared.")

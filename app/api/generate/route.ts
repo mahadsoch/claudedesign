@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { templateCatalog, templateSpec, TEMPLATE_IDS } from "@/lib/ai/templateSchema";
 import { validateDeck } from "@/lib/ai/validateDeck";
 import { runClaudeCode, ClaudeCodeNotInstalledError } from "@/lib/ai/claudeCode";
-import { chooseTemplates, contentTypeMenu, type PlanBeat } from "@/lib/ai/selectTemplate";
+import { chooseTemplates, assignBackgrounds, contentTypeMenu, type PlanBeat } from "@/lib/ai/selectTemplate";
 import { getTemplate } from "@/components/templates/registry";
 
 export const runtime = "nodejs";
@@ -85,7 +85,11 @@ Return ONLY JSON: { "meta": { "title": string }, "slides": [ { "intent": string,
 CONTENT TYPES:
 ${contentTypeMenu()}
 
-Rules: open with a "cover" slide and close with "nextsteps" or "closing". Pick the most SPECIFIC content type for each beat (e.g. pricing, roadmap, team, results, comparison) rather than defaulting to generic lists. Vary the content types. For a proposal / executive-review brief a strong spine is: cover → agenda → context → problem → approach → features → impact → roadmap → pricing → team → nextsteps, adapted to the brief.
+Rules: open with a "cover" slide and close with "nextsteps" or "closing". Pick the most SPECIFIC content type for each beat rather than defaulting to generic lists — if a beat is really a set of numbers use "chart" or "proportion", if it compares options across criteria use "matrix", if it is a transformation use "beforeafter", if it is scope or terms use "scope".
+
+Vary the content types, and vary the *shape* of the deck: in anything longer than eight slides include at least one "section" divider and at least one of "quote" / "statement" / "testimonial" as a breath between argument slides. Never run more than three consecutive slides of the same kind of density.
+
+For a proposal / executive-review brief a strong spine is: cover → agenda → context → problem → section → approach → features → chart → impact → quote → roadmap → pricing → team → nextsteps, adapted to the brief.
 
 No prose, no markdown fences.`;
 
@@ -126,10 +130,27 @@ ${slideSpecs}`;
   ) as { slides?: { fields?: unknown }[] };
   const filled = Array.isArray(raw.slides) ? raw.slides : [];
 
-  // Assemble a raw deck with server-fixed templates; validateDeck coerces
-  // fields to each schema and fills any gaps from defaults.
-  const slides = templateIds.map((template, i) => ({ template, fields: filled[i]?.fields ?? {} }));
-  return validateDeck({ meta: { title }, slides }, title);
+  // Assemble a raw deck with server-fixed templates and a server-assigned
+  // background rhythm; validateDeck coerces fields to each schema and fills any
+  // gaps from defaults. Backgrounds are decided here rather than by the model
+  // because the rhythm is a property of the deck as a whole, not of any slide.
+  const backgrounds = assignBackgrounds(beats, templateIds);
+  const slides = templateIds.map((template, i) => ({
+    template,
+    background: backgrounds[i],
+    fields: filled[i]?.fields ?? {},
+  }));
+  const report = { defaulted: [] as string[] };
+  const deck = validateDeck({ meta: { title }, slides }, title, report);
+  if (report.defaulted.length) {
+    // These fields are showing the reference deck's copy — real names, real
+    // stats — because the model never wrote them. Worth seeing in the log
+    // before a deck like that goes to a client.
+    console.warn(
+      `[generate] ${report.defaulted.length} field(s) fell back to template defaults: ${report.defaulted.join(", ")}`
+    );
+  }
+  return deck;
 }
 
 // ── Fallback: single-pass generation (model picks templates + fills at once) ──
@@ -137,9 +158,11 @@ async function singlePass(provider: Provider, brief: string, count: number) {
   const system = `You generate on-brand slide decks for the brand "Soch" as structured JSON.
 
 You may ONLY use these template ids: ${TEMPLATE_IDS.join(", ")}.
-Every slide is { "template": <one of the ids>, "fields": { ... } } where fields match that template's schema exactly. Titles may contain ONE coral accent using [[double brackets]].
+Every slide is { "template": <one of the ids>, "background": <"dark"|"cream"|"coral">, "fields": { ... } } where fields match that template's schema exactly. Every title MUST contain exactly ONE accent using [[double brackets]].
 
-For each slide, decide what the content IS, then pick the template whose "when to use" line and tags match it — reach for the specific template (pricing-tiers, roadmap-phases, process-stages, team-grid, step-timeline…) rather than generic lists. Open with a title/cover, close with a call to action, and vary backgrounds.
+Every slide also carries "background": one of "dark", "cream", "coral". Follow the brand contract's background rhythm: dark for anchor moments (the opener, a big-impact slide, the close), coral ONLY for the emotional beats (a quote or an operating principle), cream for the workhorse content — and never more than two cream slides in a row.
+
+For each slide, decide what the content IS, then pick the template whose "when to use" line and tags match it — reach for the specific template (pricing-tiers, roadmap-phases, process-stages, team-grid, step-timeline…) rather than generic lists. Open with a title/cover and close with a call to action.
 
 === BRAND CONTRACT (DESIGN.md) ===
 ${readDesignContract()}
@@ -147,7 +170,7 @@ ${readDesignContract()}
 === TEMPLATE CATALOG ===
 ${templateCatalog()}
 
-Return ONLY a JSON object: { "meta": { "title": string }, "slides": [ { "template": string, "fields": object } ] }. No prose, no fences.`;
+Return ONLY a JSON object: { "meta": { "title": string }, "slides": [ { "template": string, "background": string, "fields": object } ] }. No prose, no fences.`;
   const raw = extractJson(
     await callModel(provider, system, `Create a ${count}-slide deck for this brief:\n\n${brief}`, 16000, CONTENT_MODEL)
   );

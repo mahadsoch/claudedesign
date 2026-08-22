@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Deck, Slide } from "@/lib/model/deck";
 import { STAGE_W, STAGE_H, uid } from "@/lib/model/deck";
-import type { RenderCtx, TemplateDef } from "@/components/templates/types";
+import type { BaseRenderCtx, TemplateDef } from "@/components/templates/types";
 import { getTemplate } from "@/components/templates/registry";
 import { SlideRenderer } from "@/components/SlideRenderer";
 import { rankTemplates } from "@/lib/ai/suggestTemplates";
 import { DECK_TEMPLATES } from "@/lib/model/executiveReview";
 
 /** A live, scaled-down render of a template's default slide. */
-function TemplatePreview({ template, ctx }: { template: TemplateDef; ctx: RenderCtx }) {
+function TemplatePreview({ template, ctx }: { template: TemplateDef; ctx: BaseRenderCtx }) {
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.18);
   useEffect(() => {
@@ -40,15 +40,21 @@ function TemplatePreview({ template, ctx }: { template: TemplateDef; ctx: Render
 
 export function TemplateGallery({
   ctx,
+  mode = "insert",
+  currentTemplateId,
   onClose,
   onInsert,
   onUseDeck,
 }: {
-  ctx: RenderCtx;
+  ctx: BaseRenderCtx;
+  /** "swap" replaces the current slide's layout in place, keeping its content. */
+  mode?: "insert" | "swap";
+  currentTemplateId?: string;
   onClose: () => void;
   onInsert: (templateId: string) => void;
   onUseDeck: (deck: Deck) => void;
 }) {
+  const swapping = mode === "swap";
   const [query, setQuery] = useState("");
 
   // Rank templates by the query. rankTemplates sorts by score (desc); with no
@@ -65,12 +71,13 @@ export function TemplateGallery({
         style={{ width: "min(1120px, calc(100vw - 48px))", maxHeight: "88vh", overflowY: "auto" }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div className="modal-title">Template library</div>
+          <div className="modal-title">{swapping ? "Swap this slide's layout" : "Template library"}</div>
           <button className="btn" onClick={onClose}>Close</button>
         </div>
         <p className="modal-sub" style={{ margin: "8px 0 16px" }}>
-          Start from a full deck, or drop in a single slide. Search by what the slide is about — pricing, roadmap,
-          team, results — to see the best-fit templates first.
+          {swapping
+            ? "Pick a different layout for this slide. Every field the new template also has is carried across; anything it doesn't have is dropped, and anything new comes from its defaults."
+            : "Start from a full deck, or drop in a single slide. Search by what the slide is about — pricing, roadmap, team, results — to see the best-fit templates first."}
         </p>
 
         <input
@@ -81,7 +88,7 @@ export function TemplateGallery({
           style={{ width: "100%", background: "#1e1e1e", border: "1px solid #383838", borderRadius: 8, color: "#f0f0f0", font: "400 14px var(--font-body)", padding: "11px 13px", marginBottom: 22 }}
         />
 
-        {!query.trim() && (
+        {!query.trim() && !swapping && (
           <>
             <div className="section-label" style={{ margin: "0 0 12px" }}>Start from a deck template</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16, marginBottom: 28 }}>
@@ -108,7 +115,7 @@ export function TemplateGallery({
         )}
 
         <div className="section-label" style={{ margin: "0 0 12px" }}>
-          {query.trim() ? "Best-fit slides" : "Add a single slide"}
+          {swapping ? "Choose a layout" : query.trim() ? "Best-fit slides" : "Add a single slide"}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
           {ordered.map((t) => (
@@ -124,8 +131,13 @@ export function TemplateGallery({
                   )}
                 </div>
                 <p style={{ font: "400 12px/1.5 var(--font-body)", color: "#9a9a9a", margin: "6px 0 12px", minHeight: 36 }}>{t.description}</p>
-                <button className="btn" style={{ width: "100%" }} onClick={() => onInsert(t.id)}>
-                  Insert slide
+                <button
+                  className="btn"
+                  style={{ width: "100%" }}
+                  disabled={swapping && t.id === currentTemplateId}
+                  onClick={() => onInsert(t.id)}
+                >
+                  {swapping ? (t.id === currentTemplateId ? "Current layout" : "Use this layout") : "Insert slide"}
                 </button>
               </div>
             </div>

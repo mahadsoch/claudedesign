@@ -1,9 +1,13 @@
 import type { TemplateDef } from "./types";
 import { str, rows } from "./types";
-import { Stage, SectionHead } from "./_shared/primitives";
+import { Stage, SectionHead, Track, Numeral, SlideFooter, tone, TYPE, titleTracking } from "./_shared/primitives";
 
-// "From review to kickoff": a horizontal numbered timeline of next steps, each
-// a node on a connecting rule with a title and a one-line description.
+// "From review to kickoff": a horizontal numbered timeline of next steps.
+//
+// The rail used to sit at top:26 — straight through the middle of the 44px
+// numerals rather than through the nodes, and running past the last node with
+// no terminator. The rail and its nodes are now one `Track` component whose
+// nodes land on each column's left edge, above the numerals.
 export const stepTimeline: TemplateDef = {
   id: "step-timeline",
   name: "Steps · timeline",
@@ -38,32 +42,68 @@ export const stepTimeline: TemplateDef = {
       { title: "Kick off", desc: "Discovery begins the week after signing." },
     ],
   }),
-  render: (f) => {
+  render: (f, ctx) => {
+    const t = tone(ctx.background);
     const steps = rows(f.steps);
     const n = Math.max(steps.length, 1);
     return (
-      <Stage background="cream" style={{ padding: "90px 130px", display: "flex", flexDirection: "column" }}>
-        <SectionHead kicker={str(f.kicker)} title={str(f.title)} />
+      <Stage
+        background={ctx.background}
+        style={{ padding: "var(--pad-y) var(--pad-x) 128px", display: "flex", flexDirection: "column" }}
+      >
+        <SectionHead kicker={str(f.kicker)} title={str(f.title)} tone={t} />
         {str(f.subtitle) && (
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 20, letterSpacing: 3, fontWeight: 600, color: "var(--warm-gray)", marginTop: 40 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: TYPE.kickerSm,
+              letterSpacing: 3,
+              fontWeight: 600,
+              color: t.muted,
+              marginTop: "var(--s5)",
+            }}
+          >
             {str(f.subtitle)}
           </div>
         )}
-        <div style={{ marginTop: 40, flex: 1, position: "relative", display: "grid", gridTemplateColumns: `repeat(${n}, 1fr)`, gap: 40, alignContent: "start" }}>
-          <div style={{ position: "absolute", top: 26, left: 0, right: 0, height: 1, background: "var(--card-border)" }} />
-          {steps.map((s, i) => (
-            <div key={i} style={{ position: "relative", display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                <span style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 44, color: "var(--coral)", letterSpacing: -1, lineHeight: 1 }}>
-                  {String(i + 1).padStart(2, "0")}
-                </span>
+
+        {/* Content fills the remaining height rather than floating at the top,
+            which used to leave a ~350px void beneath a five-step timeline. */}
+        <div style={{ marginTop: "var(--s5)", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <Track count={n} tone={t} align="start" node={16} />
+          <div
+            style={{
+              marginTop: "var(--s4)",
+              display: "grid",
+              gridTemplateColumns: `repeat(${n}, 1fr)`,
+              gap: 40,
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
+            {steps.map((s, i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+                <Numeral n={i + 1} tone={t} size={TYPE.h4 - 6} />
+                <div
+                  style={{
+                    fontFamily: "var(--font-title)",
+                    fontWeight: 600,
+                    fontSize: TYPE.h6 - 3,
+                    letterSpacing: titleTracking(TYPE.h6),
+                    marginTop: 22,
+                    color: t.title,
+                  }}
+                >
+                  {s.title}
+                </div>
+                <p style={{ fontSize: TYPE.bodySm, lineHeight: 1.5, color: t.body, margin: "12px 0 0" }}>
+                  {s.desc}
+                </p>
               </div>
-              <div style={{ width: 12, height: 12, borderRadius: 9999, background: "var(--coral)", marginTop: 20, marginBottom: 26 }} />
-              <div style={{ fontFamily: "var(--font-title)", fontWeight: 600, fontSize: 27, letterSpacing: -0.5 }}>{s.title}</div>
-              <p style={{ fontSize: 22, lineHeight: 1.5, color: "var(--body-light)", margin: "12px 0 0" }}>{s.desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+        <SlideFooter tone={t} slideNumber={ctx.slideNumber} slideCount={ctx.slideCount} />
       </Stage>
     );
   },

@@ -30,6 +30,55 @@
   --coral-wash: #fbeee9;
   --coral-chip: #faede8;
 
+  /* ── Surface ramps ───────────────────────────────────────────────────────
+     Layering within a background, so a dark slide can hold a raised panel and
+     a cream slide a sunken band without leaving the palette. These replace the
+     off-token hexes that had crept into individual templates. */
+  --ink-raised: #1e1e1e; /* panel sitting above an --ink field */
+  --ink-sunken: #0d0d0d; /* recessed band on an --ink field */
+  --border-dark-2: #33302a; /* hairline on --ink-raised */
+  --cream-sunken: #f5eee2; /* recessed band on a --cream field */
+  --cream-panel: #efe7d8; /* flat panel on a --cream field, no border needed */
+  --muted-dark: #6f6a5e; /* labels/sources on ink */
+
+  /* Coral applied on a coral field (text, rules, dividers) */
+  --on-coral-rule: rgba(252, 245, 235, 0.38);
+  --on-coral-body: rgba(252, 245, 235, 0.92);
+  --on-coral-panel: #d94b38;
+
+  /* ── Rule scale ──────────────────────────────────────────────────────────
+     Four weights, not nine ad-hoc ones. Hairline reads as a list separator,
+     heavy as a structural division. */
+  --rule-hair: 1px;
+  --rule-1: 2px;
+  --rule-2: 3px;
+  --rule-heavy: 6px;
+
+  /* ── Layout ──────────────────────────────────────────────────────────────
+     One page frame for the whole library. Templates that need to breathe use
+     --pad-y-tight; nothing else should invent its own margin. */
+  --pad-x: 130px;
+  --pad-y: 90px;
+  --pad-y-tight: 76px;
+  --gutter: 40px;
+  --col-w: 106.67px; /* (1920 - 2*130 - 11*40) / 12 */
+
+  /* 8px spacing scale */
+  --s1: 8px;
+  --s2: 16px;
+  --s3: 24px;
+  --s4: 32px;
+  --s5: 44px;
+  --s6: 56px;
+  --s7: 72px;
+  --s8: 92px;
+
+  /* Corner radii — DESIGN.md allows 20–24 for cards; 999 for pills */
+  --r-card: 22px;
+  --r-panel: 24px;
+  --r-chip: 16px;
+  --r-pill: 999px;
+
   /* Fonts (wired to next/font CSS variables set on <body>) */
   --font-title: var(--font-poppins), "Poppins", sans-serif;
   --font-body: var(--font-open-sans), "Open Sans", sans-serif;
